@@ -1,0 +1,200 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "EntryPoint",
+  "Actions": {
+      "EntryPoint": {
+          "Type": "PlayPrompt",
+          "Parameters": {
+              "Prompt": {
+                  "Text": "Welcome to our organization. For English press 1, for Spanish press 2, to repeat this message press 3.",
+                  "TextToSpeechVoice": "Joanna"
+              },
+              "NextAction": "GetLanguageInput"
+          }
+      },
+      "GetLanguageInput": {
+          "Type": "GetUser Input",
+          "Parameters": {
+              "InputType": "DTMF",
+              "MaxDigits": 1,
+              "Timeout": 5,
+              "NextAction": {
+                  "1": "EnglishMainMenu",
+                  "2": "SpanishMainMenu",
+                  "3": "RepeatLanguageSelection",
+                  "default": "InvalidLanguageInput"
+              }
+          }
+      },
+      "RepeatLanguageSelection": {
+          "Type": "PlayPrompt",
+          "Parameters": {
+              "Prompt": {
+                  "Text": "Repeating the options. For English press 1, for Spanish press 2, to repeat this message press 3.",
+                  "TextToSpeechVoice": "Joanna"
+              },
+              "NextAction": "GetLanguageInput"
+          }
+      },
+      "InvalidLanguageInput": {
+          "Type": "PlayPrompt",
+          "Parameters": {
+              "Prompt": {
+                  "Text": "Invalid selection. Please try again.",
+                  "TextToSpeechVoice": "Joanna"
+              },
+              "NextAction": "EntryPoint"
+          }
+      },
+      "EnglishMainMenu": {
+          "Type": "PlayPrompt",
+          "Parameters": {
+              "Prompt": {
+                  "Text": "For support press 1, for sales press 2, to repeat this message press 3.",
+                  "TextToSpeechVoice": "Joanna"
+              },
+              "NextAction": "GetEnglishMenuInput"
+          }
+      },
+      "GetEnglishMenuInput": {
+          "Type": "GetUser Input",
+          "Parameters": {
+              "InputType": "DTMF",
+              "MaxDigits": 1,
+              "Timeout": 5,
+              "NextAction": {
+                  "1": "EnglishSupportFlow",
+                  "2": "EnglishSalesFlow",
+                  "3": "RepeatEnglishMenu",
+                  "default": "InvalidEnglishInput"
+              }
+          }
+      },
+      "RepeatEnglishMenu": {
+          "Type": "PlayPrompt",
+          "Parameters": {
+              "Prompt": {
+                  "Text": "Repeating the options. For support press 1, for sales press 2, to repeat this message press 3.",
+                  "TextToSpeechVoice": "Joanna"
+              },
+              "NextAction": "GetEnglishMenuInput"
+          }
+      },
+      "InvalidEnglishInput": {
+          "Type": "PlayPrompt",
+          "Parameters": {
+              "Prompt": {
+                  "Text": "Invalid selection. Please try again.",
+                  "TextToSpeechVoice": "Joanna"
+              },
+              "NextAction": "EnglishMainMenu"
+          }
+      },
+      "EnglishSupportFlow": {
+          "Type": "PlayPrompt",
+          "Parameters": {
+              "Prompt": {
+                  "Text": "Connecting you to support. Please hold.",
+                  "TextToSpeechVoice": "Joanna"
+              },
+              "NextAction": "ConnectToAgent"
+          }
+      },
+      "EnglishSalesFlow": {
+          "Type": "PlayPrompt",
+          "Parameters": {
+              "Prompt": {
+                  "Text": "Connecting you to sales. Please hold.",
+                  "TextToSpeechVoice": "Joanna"
+              },
+              "NextAction": "ConnectToAgent"
+          }
+      },
+      "SpanishMainMenu": {
+          "Type": "PlayPrompt",
+          "Parameters": {
+              "Prompt": {
+                  "Text": "Para soporte técnico presione 1, para ventas presione 2, para repetir este mensaje presione 3.",
+                  "TextToSpeechVoice": "Penelope"
+              },
+              "NextAction": "GetSpanishMenuInput"
+          }
+      },
+      "GetSpanishMenuInput": {
+          "Type": "GetUser Input",
+          "Parameters": {
+              "InputType": "DTMF",
+              "MaxDigits": 1,
+              "Timeout": 5,
+              "NextAction": {
+                  "1": "SpanishSupportFlow",
+                  "2": "SpanishSalesFlow",
+                  "3": "RepeatSpanishMenu",
+                  "default": "InvalidSpanishInput"
+              }
+          }
+      },
+      "RepeatSpanishMenu": {
+          "Type": "PlayPrompt",
+          "Parameters": {
+              "Prompt": {
+                  "Text": "Repitiendo las opciones. Para soporte técnico presione 1, para ventas presione 2, para repetir este mensaje presione 3.",
+                  "TextToSpeechVoice": "Penelope"
+              },
+              "NextAction": "GetSpanishMenuInput"
+          }
+      },
+      "InvalidSpanishInput": {
+          "Type": "PlayPrompt",
+          "Parameters": {
+              "Prompt": {
+                  "Text": "Selección no válida. Inténtelo de nuevo.",
+                  "TextToSpeechVoice": "Penelope"
+              },
+              "NextAction": "SpanishMainMenu"
+          }
+      },
+      "SpanishSupportFlow": {
+          "Type": "PlayPrompt",
+          "Parameters": {
+              "Prompt": {
+                  "Text": "Conectándolo con soporte técnico. Por favor espere.",
+                  "TextToSpeechVoice": "Penelope"
+              },
+              "NextAction": "ConnectToAgent"
+          }
+      },
+      "SpanishSalesFlow": {
+          "Type": "PlayPrompt",
+          "Parameters": {
+              "Prompt": {
+                  "Text": "Conectándolo con ventas. Por favor espere.",
+                  "TextToSpeechVoice": "Penelope"
+              },
+              "NextAction": "ConnectToAgent"
+          }
+      },
+      "ConnectToAgent": {
+          "Type": "ConnectToAgent",
+          "Parameters": {
+              "Queue": "GeneralQueue"
+          }
+      },
+      "TimeoutNoInput": {
+          "Type": "PlayPrompt",
+          "Parameters": {
+              "Prompt": {
+                  "Text": "We did not receive any input from you. Please try again.",
+                  "TextToSpeechVoice": "Joanna"
+              },
+              "NextAction": "Disconnect"
+          }
+      },
+      "Disconnect": {
+          "Type": "Disconnect",
+          "Parameters": {
+              "Delay": 5
+          }
+      }
+  }
+}
