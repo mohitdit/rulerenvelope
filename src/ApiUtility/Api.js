@@ -361,6 +361,8 @@ class Api {
         },
       });
 
+      console.log(response);
+
       if (response.status === 200 || response.status === 202) {
         const decrypted = this.decryptData(response.data, secretKey);
         this.successCallBack(decrypted);

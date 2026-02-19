@@ -24,6 +24,8 @@ import { SketchPicker } from 'react-color';
 import { shapeConfigs } from './Shapes';
 import { MdFormatIndentIncrease, MdFormatIndentDecrease } from 'react-icons/md';
 import { MdFormatListBulleted, MdFormatListNumbered, MdEdit } from 'react-icons/md';
+import EnvelopeDS from '../../DataServices/EnvelopeDS';
+
 
 
 
@@ -1838,6 +1840,8 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
         const customSectionId = localStorage.getItem('email');
         const requestData = {
             envelopeId,
+            datasetID: envelopeData.datasetID,
+            datasetName: envelopeData.datasetName,
             customSectionUpdatedTimeStamp: new Date().toISOString(),
             customSectionAddedBy: customSectionId,
             customElements: elements,
@@ -2625,6 +2629,26 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
     const removeMeasurementById = (id) => {
         setMeasurements((prev) => prev.filter((item) => item.id !== id));
     };
+    const fetchDatasetNames = async () => {
+        try {
+            const datasetDS = new EnvelopeDS(DatasetNamesSuccessResponse.bind(this), DatasetNamesFailureResponse.bind(this));
+            datasetDS.datasetNamesGet({});
+        } catch (error) {
+            console.error("Failed to fetch dataset names:", error);
+        }
+    };
+
+    function DatasetNamesSuccessResponse(response) {
+        console.log("datasetList", response);
+        stopHudRotation();
+        setDatasetList(response.datasets);
+        setDatasetFetched(true);
+    }
+
+    function DatasetNamesFailureResponse(error) {
+        stopHudRotation();
+        console.error('Failed to fetch datasets:', error);
+    }
 
     return (
         <div className={`modal-overlay ${isFullscreen ? 'fullscreen-overlay' : ''}`}>
@@ -3069,33 +3093,64 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                     </div>
 
                                     {/* Dataset Name Dropdown with Search */}
-                                    <div className='addEnvelope-input envelope-searchable-dropdown-wrapper' ref={isDatasetDropdownOpen ? dropdownRef : null}>
+                                    <div style={{ position: 'relative' }} ref={isDatasetDropdownOpen ? dropdownRef : null}>
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                if (!datasetFetched);
+                                                if (!datasetFetched) { fetchDatasetNames(); }
+                                                console.log("this is ", datasetList);
                                                 setIsDatasetDropdownOpen(!isDatasetDropdownOpen);
                                             }}
-                                            className={`envelope-searchable-dropdown-button ${isDatasetDropdownOpen ? 'envelope-searchable-dropdown-button-open' : ''}`}
+                                            style={{
+                                                cursor: 'pointer',
+                                                padding: '5px 10px',
+                                                backgroundColor: isDatasetDropdownOpen ? '#09c' : 'white',
+                                                color: isDatasetDropdownOpen ? 'white' : 'black',
+                                                border: '1px solid #ccc',
+                                                borderRadius: '4px',
+                                                fontSize: '14px'
+                                            }}
                                         >
-                                            {envelopeData.datasetName || 'Select Dataset '}
+                                            {envelopeData.datasetName || 'Select Dataset'}
                                         </button>
                                         {isDatasetDropdownOpen && (
-                                            <div className="envelope-searchable-dropdown-panel">
+                                            <div
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '100%',
+                                                    left: 0,
+                                                    marginTop: '5px',
+                                                    backgroundColor: 'white',
+                                                    border: '1px solid #ccc',
+                                                    borderRadius: '4px',
+                                                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                                    zIndex: 2000,
+                                                    minWidth: '200px',
+                                                    maxHeight: '500px',
+                                                    overflowY: 'auto'
+                                                }}
+                                            >
                                                 <input
                                                     type="text"
                                                     placeholder="Search dataset..."
                                                     value={datasetSearchTerm}
                                                     onChange={(e) => setDatasetSearchTerm(e.target.value)}
                                                     autoComplete="off"
-                                                    className="envelope-searchable-dropdown-search"
+                                                    style={{
+                                                        width: 'calc(100% - 16px)',
+                                                        padding: '8px',
+                                                        margin: '8px',
+                                                        border: '1px solid #ccc',
+                                                        borderRadius: '4px',
+                                                        fontSize: '14px'
+                                                    }}
                                                     onClick={(e) => e.stopPropagation()}
                                                 />
                                                 {datasetList.filter(d =>
-                                                    d.datasetName.toLowerCase().includes(datasetSearchTerm.toLowerCase())
+                                                    d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase())
                                                 ).length > 0 ? (
                                                     datasetList
-                                                        .filter(d => d.datasetName.toLowerCase().includes(datasetSearchTerm.toLowerCase()))
+                                                        .filter(d => d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase()))
                                                         .map(dataset => (
                                                             <div
                                                                 key={dataset._id}
@@ -3105,18 +3160,24 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                                                     setEnvelopeData(prevData => ({
                                                                         ...prevData,
                                                                         datasetID: dataset._id,
-                                                                        datasetName: dataset.datasetName
+                                                                        datasetName: dataset['dataset-name']
                                                                     }));
                                                                     setIsDatasetDropdownOpen(false);
                                                                     setDatasetSearchTerm('');
                                                                 }}
-                                                                className="envelope-searchable-dropdown-item"
+                                                                style={{
+                                                                    padding: '8px 12px',
+                                                                    cursor: 'pointer',
+                                                                    borderBottom: '1px solid #f0f0f0',
+                                                                }}
+                                                                onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                                                                onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
                                                             >
-                                                                {dataset.datasetName}
+                                                                {dataset['dataset-name']}
                                                             </div>
                                                         ))
                                                 ) : (
-                                                    <div className="envelope-searchable-dropdown-empty">
+                                                    <div style={{ padding: '8px 12px', color: '#999', fontSize: '14px' }}>
                                                         No Datasets Available
                                                     </div>
                                                 )}

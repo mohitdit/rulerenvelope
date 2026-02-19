@@ -120,7 +120,6 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
     };
 
 
-
     function ClientDataSuccessResponse(response) {
         stopHudRotation();
         if (response) {
@@ -212,6 +211,27 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
         ]);
     }
 
+    const fetchDatasetNames = async () => {
+        try {
+            const datasetDS = new EnvelopeDS(DatasetNamesSuccessResponse.bind(this), DatasetNamesFailureResponse.bind(this));
+            datasetDS.datasetNamesGet({});
+        } catch (error) {
+            console.error("Failed to fetch dataset names:", error);
+        }
+    };
+
+    function DatasetNamesSuccessResponse(response) {
+        console.log("datasetList", response);
+        stopHudRotation();
+        setDatasetList(response.datasets);
+        setDatasetFetched(true);
+    }
+
+    function DatasetNamesFailureResponse(error) {
+        stopHudRotation();
+        console.error('Failed to fetch datasets:', error);
+    }
+
     const fetchEnvelopesAdd = async () => {
         const currentTimestamp = new Date().toISOString();
         hud("Please Wait...");
@@ -229,6 +249,8 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
             isEnvelopeEnable: true,
             envelopeAddedTimeStamp: currentTimestamp,
             envelopeUpdatedTimeStamp: currentTimestamp,
+            datasetID: envelopeData.datasetID || '',
+            datasetName: envelopeData.datasetName || '',
             // masterPageID: selectedMasterPage._id,
             // envelopeGroupID: selectedMasterPage.envelopeGroupID
         };
@@ -467,11 +489,11 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
                     </div>
 
                     {/* Client Name Dropdown with Search */}
-                    <div className=' envelope-searchable-dropdown-wrapper'ref={isClientDropdownOpen ? dropdownRef : null}>
+                    <div className=' envelope-searchable-dropdown-wrapper' ref={isClientDropdownOpen ? dropdownRef : null}>
                         <label>Client Name</label>
                         <button
                             type="button"
-                            disabled={isClient} 
+                            disabled={isClient}
                             onClick={() => {
                                 if (isClient) return;  // extra safety
                                 setIsClientDropdownOpen(!isClientDropdownOpen);
@@ -481,13 +503,13 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
                             className={`envelope-searchable-dropdown-button 
         ${isClient ? 'disabled-dropdown' : ''} 
         ${isClientDropdownOpen ? 'envelope-searchable-dropdown-button-open' : ''}
-    `}  ref={dropdownRef}
+    `} ref={dropdownRef}
                         >
                             {envelopeData.clientName || 'Select Client'}
                         </button>
 
                         {isClientDropdownOpen && !isClient && (
- 
+
                             <div
                                 className="envelope-searchable-dropdown-panel"
                             >
@@ -655,7 +677,8 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
                         <button
                             type="button"
                             onClick={() => {
-                                if (!datasetFetched) ;
+                                if (!datasetFetched) {fetchDatasetNames();}
+                                console.log("this is ",datasetList);
                                 setIsDatasetDropdownOpen(!isDatasetDropdownOpen);
                                 setIsClientDropdownOpen(false);
                                 setIsGroupDropdownOpen(false);
@@ -677,10 +700,10 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
                                     onClick={(e) => e.stopPropagation()}
                                 />
                                 {datasetList.filter(d =>
-                                    d.datasetName.toLowerCase().includes(datasetSearchTerm.toLowerCase())
+                                    d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase())
                                 ).length > 0 ? (
                                     datasetList
-                                        .filter(d => d.datasetName.toLowerCase().includes(datasetSearchTerm.toLowerCase()))
+                                        .filter(d => d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase()))
                                         .map(dataset => (
                                             <div
                                                 key={dataset._id}
@@ -690,14 +713,14 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
                                                     setEnvelopeData(prevData => ({
                                                         ...prevData,
                                                         datasetID: dataset._id,
-                                                        datasetName: dataset.datasetName
+                                                        datasetName:  dataset['dataset-name']
                                                     }));
                                                     setIsDatasetDropdownOpen(false);
                                                     setDatasetSearchTerm('');
                                                 }}
                                                 className="envelope-searchable-dropdown-item"
                                             >
-                                                {dataset.datasetName}
+                                                {dataset['dataset-name']}
                                             </div>
                                         ))
                                 ) : (

@@ -321,6 +321,26 @@ function ImportEnvelope({ onClose, title, userId, isClient, setIsClientCall }) {
       },
     ]);
   }
+  const fetchDatasetNames = async () => {
+    try {
+      const datasetDS = new EnvelopeDS(DatasetNamesSuccessResponse.bind(this), DatasetNamesFailureResponse.bind(this));
+      datasetDS.datasetNamesGet({});
+    } catch (error) {
+      console.error("Failed to fetch dataset names:", error);
+    }
+  };
+
+  function DatasetNamesSuccessResponse(response) {
+    console.log("datasetList", response);
+    stopHudRotation();
+    setDatasetList(response.datasets);
+    setDatasetFetched(true);
+}
+
+  function DatasetNamesFailureResponse(error) {
+    stopHudRotation();
+    console.error('Failed to fetch datasets:', error);
+  }
 
   const fetchEnvelopesAdd = async (clientID, groupID, updatedElements) => {
     const currentTimestamp = new Date().toISOString();
@@ -338,6 +358,8 @@ function ImportEnvelope({ onClose, title, userId, isClient, setIsClientCall }) {
       isEnvelopeEnable: true,
       envelopeAddedTimeStamp: currentTimestamp,
       envelopeUpdatedTimeStamp: currentTimestamp,
+      datasetID: envelopeData.datasetID || '',
+      datasetName: envelopeData.datasetName || '',
     };
 
     try {
@@ -650,62 +672,64 @@ function ImportEnvelope({ onClose, title, userId, isClient, setIsClientCall }) {
 
           {/* Dataset Name Dropdown with Search */}
           <div className='addEnvelope-input envelope-searchable-dropdown-wrapper' ref={isDatasetDropdownOpen ? dropdownRef : null}>
-            <label>Dataset Name <span style={{ fontSize: '12px', color: 'gray' }}>(Optional)</span></label>
-            <button
-              type="button"
-              onClick={() => {
-                if (!datasetFetched);
-                setIsDatasetDropdownOpen(!isDatasetDropdownOpen);
-                setIsClientDropdownOpen(false);
-                setIsGroupDropdownOpen(false);
-              }}
-              className={`envelope-searchable-dropdown-button ${isDatasetDropdownOpen ? 'envelope-searchable-dropdown-button-open' : ''}`}
-            >
-              {envelopeData.datasetName || 'Select Dataset (Optional)'}
-            </button>
-            {isDatasetDropdownOpen && (
-              <div className="envelope-searchable-dropdown-panel">
-                <input
-                  type="text"
-                  placeholder="Search dataset..."
-                  value={datasetSearchTerm}
-                  onChange={(e) => setDatasetSearchTerm(e.target.value)}
-                  autoComplete="off"
-                  className="envelope-searchable-dropdown-search"
-                  onClick={(e) => e.stopPropagation()}
-                />
-                {datasetList.filter(d =>
-                  d.datasetName.toLowerCase().includes(datasetSearchTerm.toLowerCase())
-                ).length > 0 ? (
-                  datasetList
-                    .filter(d => d.datasetName.toLowerCase().includes(datasetSearchTerm.toLowerCase()))
-                    .map(dataset => (
-                      <div
-                        key={dataset._id}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setEnvelopeData(prevData => ({
-                            ...prevData,
-                            datasetID: dataset._id,
-                            datasetName: dataset.datasetName
-                          }));
-                          setIsDatasetDropdownOpen(false);
-                          setDatasetSearchTerm('');
-                        }}
-                        className="envelope-searchable-dropdown-item"
-                      >
-                        {dataset.datasetName}
-                      </div>
-                    ))
-                ) : (
-                  <div className="envelope-searchable-dropdown-empty">
-                    No Datasets Available
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                        <label>Dataset Name <span style={{ fontSize: '12px', color: 'gray' }}>(Optional)</span></label>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (!datasetFetched) {fetchDatasetNames();}
+                                console.log("this is ",datasetList);
+                                setIsDatasetDropdownOpen(!isDatasetDropdownOpen);
+                                setIsClientDropdownOpen(false);
+                                setIsGroupDropdownOpen(false);
+                                
+                            }}
+                            className={`envelope-searchable-dropdown-button ${isDatasetDropdownOpen ? 'envelope-searchable-dropdown-button-open' : ''}`}
+                        >
+                            {envelopeData.datasetName || 'Select Dataset (Optional)'}
+                        </button>
+                        {isDatasetDropdownOpen && (
+                            <div className="envelope-searchable-dropdown-panel">
+                                <input
+                                    type="text"
+                                    placeholder="Search dataset..."
+                                    value={datasetSearchTerm}
+                                    onChange={(e) => setDatasetSearchTerm(e.target.value)}
+                                    autoComplete="off"
+                                    className="envelope-searchable-dropdown-search"
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                                {datasetList.filter(d =>
+                                    d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase())
+                                ).length > 0 ? (
+                                    datasetList
+                                        .filter(d => d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase()))
+                                        .map(dataset => (
+                                            <div
+                                                key={dataset._id}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setEnvelopeData(prevData => ({
+                                                        ...prevData,
+                                                        datasetID: dataset._id,
+                                                        datasetName:  dataset['dataset-name']
+                                                    }));
+                                                    setIsDatasetDropdownOpen(false);
+                                                    setDatasetSearchTerm('');
+                                                }}
+                                                className="envelope-searchable-dropdown-item"
+                                            >
+                                                {dataset['dataset-name']}
+                                            </div>
+                                        ))
+                                ) : (
+                                    <div className="envelope-searchable-dropdown-empty">
+                                        No Datasets Available
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
 
           <div>
             <label>Upload Envelope</label>
