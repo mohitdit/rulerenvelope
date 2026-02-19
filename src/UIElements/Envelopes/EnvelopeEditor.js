@@ -153,6 +153,11 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
     const [imagesExist, setImagesExist] = useState(false);
     const [showEnvelopeModal, setShowEnvelopeModal] = useState(false);
     const [selectedPreviewType, setSelectedPreviewType] = useState('');
+    const [isDatasetDropdownOpen, setIsDatasetDropdownOpen] = useState(false);
+    const [datasetList, setDatasetList] = useState([]);
+    const [datasetSearchTerm, setDatasetSearchTerm] = useState('');
+    const [datasetFetched, setDatasetFetched] = useState(false);
+    const dropdownRef = useRef(null);
 
 
     let lastPastedText = null;
@@ -292,8 +297,10 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
         if (EnvelopeGroups) {
             // hud('Please Wait...')
             setLoading(false);
+            console.log("before", envelopeData);
             setEnvelopeData(EnvelopeGroups);
-
+            console.log("settig Envelope Data:", EnvelopeGroups);
+            console.log("after", envelopeData);
 
         }
     }, [EnvelopeGroups]);
@@ -2625,7 +2632,7 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                 <div className="modal-header">
                     <h4>{title}</h4>
                     <div className="modal-header-controls">
-                        {(!isEnvelope && !isPreview)&& <div style={{ position: 'absolute', right: '0', marginRight: '40px' }}>
+                        {(!isEnvelope && !isPreview) && <div style={{ position: 'absolute', right: '0', marginRight: '40px' }}>
                             <button className='preview_trigger' onClick={() => {
                                 setSelectedPreviewType('regular-window')
                                 setShowEnvelopeModal(true);
@@ -3057,6 +3064,62 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                                             {field}
                                                         </div>
                                                     ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Dataset Name Dropdown with Search */}
+                                    <div className='addEnvelope-input envelope-searchable-dropdown-wrapper' ref={isDatasetDropdownOpen ? dropdownRef : null}>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!datasetFetched);
+                                                setIsDatasetDropdownOpen(!isDatasetDropdownOpen);
+                                            }}
+                                            className={`envelope-searchable-dropdown-button ${isDatasetDropdownOpen ? 'envelope-searchable-dropdown-button-open' : ''}`}
+                                        >
+                                            {envelopeData.datasetName || 'Select Dataset '}
+                                        </button>
+                                        {isDatasetDropdownOpen && (
+                                            <div className="envelope-searchable-dropdown-panel">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search dataset..."
+                                                    value={datasetSearchTerm}
+                                                    onChange={(e) => setDatasetSearchTerm(e.target.value)}
+                                                    autoComplete="off"
+                                                    className="envelope-searchable-dropdown-search"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                                {datasetList.filter(d =>
+                                                    d.datasetName.toLowerCase().includes(datasetSearchTerm.toLowerCase())
+                                                ).length > 0 ? (
+                                                    datasetList
+                                                        .filter(d => d.datasetName.toLowerCase().includes(datasetSearchTerm.toLowerCase()))
+                                                        .map(dataset => (
+                                                            <div
+                                                                key={dataset._id}
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    setEnvelopeData(prevData => ({
+                                                                        ...prevData,
+                                                                        datasetID: dataset._id,
+                                                                        datasetName: dataset.datasetName
+                                                                    }));
+                                                                    setIsDatasetDropdownOpen(false);
+                                                                    setDatasetSearchTerm('');
+                                                                }}
+                                                                className="envelope-searchable-dropdown-item"
+                                                            >
+                                                                {dataset.datasetName}
+                                                            </div>
+                                                        ))
+                                                ) : (
+                                                    <div className="envelope-searchable-dropdown-empty">
+                                                        No Datasets Available
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>

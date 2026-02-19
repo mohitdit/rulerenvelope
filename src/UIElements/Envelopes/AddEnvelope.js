@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MdCancel } from 'react-icons/md';
 import { useCustomContext } from '../CustomComponents/CustomComponents';
 import EnvelopeDS from '../../DataServices/EnvelopeDS';
@@ -30,9 +30,26 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
     const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
     const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
     const [isMasterPageDropdownOpen, setIsMasterPageDropdownOpen] = useState(false);
+    const [isDatasetDropdownOpen, setIsDatasetDropdownOpen] = useState(false);
+    const [datasetList, setDatasetList] = useState([]);
+    const [datasetSearchTerm, setDatasetSearchTerm] = useState('');
+    const [datasetFetched, setDatasetFetched] = useState(false);
 
 
 
+    const dropdownRef = useRef(null);
+    useEffect(() => {
+        const handler = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setIsClientDropdownOpen(false);
+                setIsGroupDropdownOpen(false);
+                setIsMasterPageDropdownOpen(false);
+                setIsDatasetDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
 
     useEffect(() => {
         if (isClient && userId && clients.length > 0) {
@@ -101,6 +118,7 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
             ]);
         }
     };
+
 
 
     function ClientDataSuccessResponse(response) {
@@ -449,11 +467,11 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
                     </div>
 
                     {/* Client Name Dropdown with Search */}
-                    <div className=' envelope-searchable-dropdown-wrapper'>
+                    <div className=' envelope-searchable-dropdown-wrapper'ref={isClientDropdownOpen ? dropdownRef : null}>
                         <label>Client Name</label>
                         <button
                             type="button"
-                            disabled={isClient}   // 👈 disable if isClient true
+                            disabled={isClient} 
                             onClick={() => {
                                 if (isClient) return;  // extra safety
                                 setIsClientDropdownOpen(!isClientDropdownOpen);
@@ -463,7 +481,7 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
                             className={`envelope-searchable-dropdown-button 
         ${isClient ? 'disabled-dropdown' : ''} 
         ${isClientDropdownOpen ? 'envelope-searchable-dropdown-button-open' : ''}
-    `}
+    `}  ref={dropdownRef}
                         >
                             {envelopeData.clientName || 'Select Client'}
                         </button>
@@ -515,7 +533,7 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
 
                     {/* Envelope Group Name Dropdown with Search */}
                     {envelopeData.pageType !== 3 && (
-                        <div className='addEnvelope-input envelope-searchable-dropdown-wrapper'>
+                        <div className='addEnvelope-input envelope-searchable-dropdown-wrapper' ref={isGroupDropdownOpen ? dropdownRef : null}>
                             <label>Envelope Group Name</label>
                             <button
                                 type="button"
@@ -573,7 +591,7 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
 
                     {/* Master Page Dropdown with Search */}
                     {envelopeData.pageType === 3 && (
-                        <div className='addEnvelope-input envelope-searchable-dropdown-wrapper'>
+                        <div className='addEnvelope-input envelope-searchable-dropdown-wrapper' ref={isMasterPageDropdownOpen ? dropdownRef : null}>
                             <label>Master Page</label>
                             <button
                                 type="button"
@@ -631,6 +649,65 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
 
                     )}
 
+                    {/* Dataset Name Dropdown with Search */}
+                    <div className='addEnvelope-input envelope-searchable-dropdown-wrapper' ref={isDatasetDropdownOpen ? dropdownRef : null}>
+                        <label>Dataset Name <span style={{ fontSize: '12px', color: 'gray' }}>(Optional)</span></label>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (!datasetFetched) ;
+                                setIsDatasetDropdownOpen(!isDatasetDropdownOpen);
+                                setIsClientDropdownOpen(false);
+                                setIsGroupDropdownOpen(false);
+                                setIsMasterPageDropdownOpen(false);
+                            }}
+                            className={`envelope-searchable-dropdown-button ${isDatasetDropdownOpen ? 'envelope-searchable-dropdown-button-open' : ''}`}
+                        >
+                            {envelopeData.datasetName || 'Select Dataset (Optional)'}
+                        </button>
+                        {isDatasetDropdownOpen && (
+                            <div className="envelope-searchable-dropdown-panel">
+                                <input
+                                    type="text"
+                                    placeholder="Search dataset..."
+                                    value={datasetSearchTerm}
+                                    onChange={(e) => setDatasetSearchTerm(e.target.value)}
+                                    autoComplete="off"
+                                    className="envelope-searchable-dropdown-search"
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                                {datasetList.filter(d =>
+                                    d.datasetName.toLowerCase().includes(datasetSearchTerm.toLowerCase())
+                                ).length > 0 ? (
+                                    datasetList
+                                        .filter(d => d.datasetName.toLowerCase().includes(datasetSearchTerm.toLowerCase()))
+                                        .map(dataset => (
+                                            <div
+                                                key={dataset._id}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setEnvelopeData(prevData => ({
+                                                        ...prevData,
+                                                        datasetID: dataset._id,
+                                                        datasetName: dataset.datasetName
+                                                    }));
+                                                    setIsDatasetDropdownOpen(false);
+                                                    setDatasetSearchTerm('');
+                                                }}
+                                                className="envelope-searchable-dropdown-item"
+                                            >
+                                                {dataset.datasetName}
+                                            </div>
+                                        ))
+                                ) : (
+                                    <div className="envelope-searchable-dropdown-empty">
+                                        No Datasets Available
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
 
                     {/* <div className='radio-div'>
                         <label>Envelope Color</label>

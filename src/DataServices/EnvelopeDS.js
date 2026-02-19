@@ -27,6 +27,10 @@ class EnvelopeDS {
         this.api.postAPIWithTokenID(requestData,'/Live/EM_Envelope_CLONE');        
     }
     
+    datasetNamesGet = (requestData) => {
+        this.api.postAPIWithTokenID(requestData,'/Live/EM_Wite_Datasets_GET');                
+    }
+    
     EnvelopeDSSuccess(responsedata)  {
         this.successDSCallBack(responsedata)
     }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { MdCancel } from 'react-icons/md';
 import DocxPreviewer from './DocxPreview'
 import EnvelopeDS from '../../DataServices/EnvelopeDS';
@@ -43,6 +43,22 @@ function ImportEnvelope({ onClose, title, userId, isClient, setIsClientCall }) {
     envelopeGroupID: '',
     envelopeGroupName: '',
   });
+  const [isDatasetDropdownOpen, setIsDatasetDropdownOpen] = useState(false);
+  const [datasetList, setDatasetList] = useState([]);
+  const [datasetSearchTerm, setDatasetSearchTerm] = useState('');
+  const [datasetFetched, setDatasetFetched] = useState(false);
+  const dropdownRef = useRef(null);
+    useEffect(() => {
+        const handler = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setIsClientDropdownOpen(false);
+                setIsGroupDropdownOpen(false);
+                setIsDatasetDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
 
   useEffect(() => {
     console.log('elements1234:', elements);
@@ -516,7 +532,7 @@ function ImportEnvelope({ onClose, title, userId, isClient, setIsClientCall }) {
           {errorMessages.envelopeName && (
             <small className="importErrorMessage">{errorMessages.envelopeName}</small>
           )}
-          <div className='addEnvelope-input envelope-searchable-dropdown-wrapper'>
+          <div className='addEnvelope-input envelope-searchable-dropdown-wrapper' ref={isClientDropdownOpen ? dropdownRef : null}>
             <label>Client Name</label>
             <button
               type="button"
@@ -578,7 +594,7 @@ function ImportEnvelope({ onClose, title, userId, isClient, setIsClientCall }) {
             )}
           </div>
 
-          <div className='addEnvelope-input envelope-searchable-dropdown-wrapper'>
+          <div className='addEnvelope-input envelope-searchable-dropdown-wrapper' ref={isGroupDropdownOpen ? dropdownRef : null}>
             <label>Envelope Group Name</label>
             <button
               type="button"
@@ -626,6 +642,65 @@ function ImportEnvelope({ onClose, title, userId, isClient, setIsClientCall }) {
                 ) : (
                   <div className="envelope-searchable-dropdown-empty">
                     No Groups Available
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Dataset Name Dropdown with Search */}
+          <div className='addEnvelope-input envelope-searchable-dropdown-wrapper' ref={isDatasetDropdownOpen ? dropdownRef : null}>
+            <label>Dataset Name <span style={{ fontSize: '12px', color: 'gray' }}>(Optional)</span></label>
+            <button
+              type="button"
+              onClick={() => {
+                if (!datasetFetched);
+                setIsDatasetDropdownOpen(!isDatasetDropdownOpen);
+                setIsClientDropdownOpen(false);
+                setIsGroupDropdownOpen(false);
+              }}
+              className={`envelope-searchable-dropdown-button ${isDatasetDropdownOpen ? 'envelope-searchable-dropdown-button-open' : ''}`}
+            >
+              {envelopeData.datasetName || 'Select Dataset (Optional)'}
+            </button>
+            {isDatasetDropdownOpen && (
+              <div className="envelope-searchable-dropdown-panel">
+                <input
+                  type="text"
+                  placeholder="Search dataset..."
+                  value={datasetSearchTerm}
+                  onChange={(e) => setDatasetSearchTerm(e.target.value)}
+                  autoComplete="off"
+                  className="envelope-searchable-dropdown-search"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                {datasetList.filter(d =>
+                  d.datasetName.toLowerCase().includes(datasetSearchTerm.toLowerCase())
+                ).length > 0 ? (
+                  datasetList
+                    .filter(d => d.datasetName.toLowerCase().includes(datasetSearchTerm.toLowerCase()))
+                    .map(dataset => (
+                      <div
+                        key={dataset._id}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setEnvelopeData(prevData => ({
+                            ...prevData,
+                            datasetID: dataset._id,
+                            datasetName: dataset.datasetName
+                          }));
+                          setIsDatasetDropdownOpen(false);
+                          setDatasetSearchTerm('');
+                        }}
+                        className="envelope-searchable-dropdown-item"
+                      >
+                        {dataset.datasetName}
+                      </div>
+                    ))
+                ) : (
+                  <div className="envelope-searchable-dropdown-empty">
+                    No Datasets Available
                   </div>
                 )}
               </div>
