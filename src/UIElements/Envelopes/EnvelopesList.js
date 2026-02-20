@@ -66,6 +66,8 @@ function EnvelopesList({ showIconsOnly }) {
   const [tableHeight, setTableHeight] = useState("600px");
   const [letterPreview, setLetterPreview] = useState(false);
   const [isClientCall, setIsClientCall] = useState(isClient)
+  const [dataSetID, setDataSetID] = useState('');
+  const [dataSetName, setDataSetName] = useState('');
 
 
   useEffect(() => {
@@ -405,7 +407,8 @@ function EnvelopesList({ showIconsOnly }) {
     setClientId(envelope.clientID);
     setCustomElements([]);
     setPageType(envelope.pageType);
-
+    setDataSetID(envelope.datasetID);
+    setDataSetName(envelope.datasetName);
     try {
       const selectedElements = await getCustomElements(envelope.envelopeGroupID, envelope._id, true) || [];
 
@@ -1069,6 +1072,9 @@ function EnvelopesList({ showIconsOnly }) {
           MasterElements={MasterElements}
           page={PageType}
           isEnvelope={isEnvelopeSelected}
+          datasetID={dataSetID}
+          datasetName={dataSetName}
+         
         />
 
       }

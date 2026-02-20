@@ -104,10 +104,10 @@ const listOptions = [
 
 
 
-const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, customElements, EnvelopeGroups, ImageData, ClientId, MasterElements, page, isEnvelope }) => {
+const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, customElements, EnvelopeGroups, ImageData, ClientId, MasterElements, page, isEnvelope,datasetID,datasetName}) => {
 
 
-    const [envelopeData, setEnvelopeData] = useState({ sections: [] });
+    const [envelopeData, setEnvelopeData] = useState({ sections: [], datasetID: datasetID || '', datasetName: datasetName || '' });
     const [selectedElement, setSelectedElement] = useState(null); // Tracks the currently active element
     const [elements, setElements] = useState([]); // Manages all text and image elements
     const [textFont, settextFont] = useState(fontOptions[0]); // Default font
@@ -159,7 +159,7 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
     const [datasetList, setDatasetList] = useState([]);
     const [datasetSearchTerm, setDatasetSearchTerm] = useState('');
     const [datasetFetched, setDatasetFetched] = useState(false);
-    const dropdownRef = useRef(null);
+    const datasetDropdownRef = useRef(null);
 
 
     let lastPastedText = null;
@@ -201,6 +201,10 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
             if (!mergeFieldsContainer && isMergeFieldsOpen) {
                 setIsMergeFieldsOpen(false);
                 setMergeFieldSearch('');
+            }
+            if (datasetDropdownRef.current && !datasetDropdownRef.current.contains(event.target)) {
+                setIsDatasetDropdownOpen(false);
+                setDatasetSearchTerm('');
             }
         };
 
@@ -2654,39 +2658,28 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
         <div className={`modal-overlay ${isFullscreen ? 'fullscreen-overlay' : ''}`}>
             <div className={`modal-content-editor ${isFullscreen ? 'fullscreen-modal' : ''}`}>
                 <div className="modal-header">
-                    <h4>{title}</h4>
-                    <div className="modal-header-controls">
-                        {(!isEnvelope && !isPreview) && <div style={{ position: 'absolute', right: '0', marginRight: '40px' }}>
-                            <button className='preview_trigger' onClick={() => {
-                                setSelectedPreviewType('regular-window')
-                                setShowEnvelopeModal(true);
-                            }}>Regular Window</button>
-
-                            <button className='preview_trigger' onClick={() => {
-                                setSelectedPreviewType('full-window')
-                                setShowEnvelopeModal(true);
-                            }}>Full Window</button>
-                        </div>}
-                        {isFullscreen ? (
-                            // <MdZoomInMap size={24} style={{ cursor: 'pointer' }} onClick={toggleFullscreen} />
-                            <img
-                                src="/expand.png"
-                                alt="ExpandPage"
-                                onClick={toggleFullscreen}
-                                style={{ cursor: 'pointer', height: '20px' }}
-                            />
-                        ) : (
-                            // <MdZoomOutMap size={24} style={{ cursor: 'pointer' }} onClick={toggleFullscreen} />
-                            <img
-                                src="/expand.png"
-                                alt="CollapsePage"
-                                onClick={toggleFullscreen}
-                                style={{ cursor: 'pointer', height: '20px' }}
-                            />
-                        )}
-                        <MdCancel size={24} style={{ cursor: 'pointer', marginRight: `${isFullscreen ? '20px' : "0px"}` }} onClick={closeEditor} />
-                    </div>
-                </div>
+    <h4>{title}</h4>
+    {(!isEnvelope && !isPreview) && (
+        <div style={{ display: 'flex', gap: '8px', marginLeft: '16px' }}>
+            <button className='preview_trigger' onClick={() => {
+                setSelectedPreviewType('regular-window');
+                setShowEnvelopeModal(true);
+            }}>Regular Window</button>
+            <button className='preview_trigger' onClick={() => {
+                setSelectedPreviewType('full-window');
+                setShowEnvelopeModal(true);
+            }}>Full Window</button>
+        </div>
+    )}
+    <div className="modal-header-controls">
+        {isFullscreen ? (
+            <img src="/expand.png" alt="ExpandPage" onClick={toggleFullscreen} style={{ cursor: 'pointer', height: '20px' }} />
+        ) : (
+            <img src="/expand.png" alt="CollapsePage" onClick={toggleFullscreen} style={{ cursor: 'pointer', height: '20px' }} />
+        )}
+        <MdCancel size={24} style={{ cursor: 'pointer', marginRight: `${isFullscreen ? '20px' : "0px"}` }} onClick={closeEditor} />
+    </div>
+</div>
 
                 <div className='editor-div'>
                     {!isPreview &&
@@ -3092,98 +3085,99 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                         )}
                                     </div>
 
-                                    {/* Dataset Name Dropdown with Search */}
-                                    <div style={{ position: 'relative' }} ref={isDatasetDropdownOpen ? dropdownRef : null}>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (!datasetFetched) { fetchDatasetNames(); }
-                                                console.log("this is ", datasetList);
-                                                setIsDatasetDropdownOpen(!isDatasetDropdownOpen);
-                                            }}
-                                            style={{
-                                                cursor: 'pointer',
-                                                padding: '5px 10px',
-                                                backgroundColor: isDatasetDropdownOpen ? '#09c' : 'white',
-                                                color: isDatasetDropdownOpen ? 'white' : 'black',
-                                                border: '1px solid #ccc',
-                                                borderRadius: '4px',
-                                                fontSize: '14px'
-                                            }}
-                                        >
-                                            {envelopeData.datasetName || 'Select Dataset'}
-                                        </button>
-                                        {isDatasetDropdownOpen && (
-                                            <div
-                                                style={{
-                                                    position: 'absolute',
-                                                    top: '100%',
-                                                    left: 0,
-                                                    marginTop: '5px',
-                                                    backgroundColor: 'white',
-                                                    border: '1px solid #ccc',
-                                                    borderRadius: '4px',
-                                                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                                                    zIndex: 2000,
-                                                    minWidth: '200px',
-                                                    maxHeight: '500px',
-                                                    overflowY: 'auto'
-                                                }}
-                                            >
-                                                <input
-                                                    type="text"
-                                                    placeholder="Search dataset..."
-                                                    value={datasetSearchTerm}
-                                                    onChange={(e) => setDatasetSearchTerm(e.target.value)}
-                                                    autoComplete="off"
-                                                    style={{
-                                                        width: 'calc(100% - 16px)',
-                                                        padding: '8px',
-                                                        margin: '8px',
-                                                        border: '1px solid #ccc',
-                                                        borderRadius: '4px',
-                                                        fontSize: '14px'
-                                                    }}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                />
-                                                {datasetList.filter(d =>
-                                                    d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase())
-                                                ).length > 0 ? (
-                                                    datasetList
-                                                        .filter(d => d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase()))
-                                                        .map(dataset => (
-                                                            <div
-                                                                key={dataset._id}
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-                                                                    e.stopPropagation();
-                                                                    setEnvelopeData(prevData => ({
-                                                                        ...prevData,
-                                                                        datasetID: dataset._id,
-                                                                        datasetName: dataset['dataset-name']
-                                                                    }));
-                                                                    setIsDatasetDropdownOpen(false);
-                                                                    setDatasetSearchTerm('');
-                                                                }}
-                                                                style={{
-                                                                    padding: '8px 12px',
-                                                                    cursor: 'pointer',
-                                                                    borderBottom: '1px solid #f0f0f0',
-                                                                }}
-                                                                onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
-                                                                onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
-                                                            >
-                                                                {dataset['dataset-name']}
-                                                            </div>
-                                                        ))
-                                                ) : (
-                                                    <div style={{ padding: '8px 12px', color: '#999', fontSize: '14px' }}>
-                                                        No Datasets Available
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
+{/* Dataset Name Dropdown with Search */}
+<div style={{ position: 'relative' }} ref={datasetDropdownRef}>
+    <button
+        type="button"
+        onClick={() => {
+            if (!datasetFetched) { fetchDatasetNames(); }
+            console.log("this is ", datasetList);
+            setIsDatasetDropdownOpen(!isDatasetDropdownOpen);
+        }}
+        style={{
+            cursor: 'pointer',
+            padding: '5px 10px',
+            backgroundColor: isDatasetDropdownOpen ? '#09c' : 'white',
+            color: isDatasetDropdownOpen ? 'white' : 'black',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            fontSize: '14px',
+            display: (envelopeData.datasetName || datasetName) && page !== 2 ? 'inline-block' : 'none'
+        }}
+    >
+        {envelopeData.datasetName || datasetName || 'Select Dataset'}
+    </button>
+    {isDatasetDropdownOpen && (
+        <div
+            style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                marginTop: '5px',
+                backgroundColor: 'white',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                zIndex: 2000,
+                minWidth: '200px',
+                maxHeight: '500px',
+                overflowY: 'auto'
+            }}
+        >
+            <input
+                type="text"
+                placeholder="Search dataset..."
+                value={datasetSearchTerm}
+                onChange={(e) => setDatasetSearchTerm(e.target.value)}
+                autoComplete="off"
+                style={{
+                    width: 'calc(100% - 16px)',
+                    padding: '8px',
+                    margin: '8px',
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                }}
+                onClick={(e) => e.stopPropagation()}
+            />
+            {datasetList.filter(d =>
+                d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase())
+            ).length > 0 ? (
+                datasetList
+                    .filter(d => d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase()))
+                    .map(dataset => (
+                        <div
+                            key={dataset._id}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setEnvelopeData(prevData => ({
+                                    ...prevData,
+                                    datasetID: dataset._id,
+                                    datasetName: dataset['dataset-name']
+                                }));
+                                setIsDatasetDropdownOpen(false);
+                                setDatasetSearchTerm('');
+                            }}
+                            style={{
+                                padding: '8px 12px',
+                                cursor: 'pointer',
+                                borderBottom: '1px solid #f0f0f0',
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                        >
+                            {dataset['dataset-name']}
+                        </div>
+                    ))
+            ) : (
+                <div style={{ padding: '8px 12px', color: '#999', fontSize: '14px' }}>
+                    No Datasets Available
+                </div>
+            )}
+        </div>
+    )}
+</div>
 
                                 </div>
                             </div>

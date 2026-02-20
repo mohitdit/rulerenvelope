@@ -261,6 +261,7 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
         };
         console.log("req-master", requestData);
         try {
+            console.log("request data", requestData);
             const EnvelopeAddDS = new EnvelopeDS(EnvelopeAddDataSuccessResponse.bind(this), EnvelopeAddDataFailureResponse.bind(this));
             EnvelopeAddDS.addEnvelope(requestData);
         }
@@ -712,7 +713,7 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
                                                     e.stopPropagation();
                                                     setEnvelopeData(prevData => ({
                                                         ...prevData,
-                                                        datasetID: dataset._id,
+                                                        datasetID: dataset['dataset-id'],
                                                         datasetName:  dataset['dataset-name']
                                                     }));
                                                     setIsDatasetDropdownOpen(false);
