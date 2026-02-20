@@ -10,7 +10,7 @@ import { MdOutlinePhotoSizeSelectActual } from 'react-icons/md';
 import AddPhotolibrary from './AddPhotolibrary';
 import { GoCheckCircleFill } from "react-icons/go";
 import { IoIosSearch } from "react-icons/io";
-import { AiOutlineFileAdd } from "react-icons/ai";
+import { FcCheckmark } from "react-icons/fc";
 import { RiAddLargeFill } from "react-icons/ri";
 import { FaSort } from "react-icons/fa";
 
@@ -30,10 +30,11 @@ function ClientList({ showIconsOnly }) {
   const [copiedId, setCopiedId] = useState(null);
   const navigate = useNavigate();
   const [openMenuId, setOpenMenuId] = useState(null);
-  const [sortOrder, setSortOrder] = useState(null);
+  const [sortOrder, setSortOrder] = useState("latest_added");
   const [showSortMenu, setShowSortMenu] = useState(false);
   const sortMenuRef = useRef(null);
   const menuRef = useRef(null);
+
 
   const sortedClients = [...filteredClient].sort((a, b) => {
     if (!sortOrder) return 0;
@@ -62,6 +63,7 @@ function ClientList({ showIconsOnly }) {
   const handleSortSelect = (sortType) => {
     setSortOrder(sortType);
     setShowSortMenu(false);
+
   };
 
   useEffect(() => {
@@ -363,15 +365,37 @@ function ClientList({ showIconsOnly }) {
                       Client Name{" "}
                       <span onClick={handleSortMenuToggle} style={{ cursor: "pointer", position: "relative" }}>
                         <FaSort color="#09c" size={15} />
-                        {showSortMenu && (<>
-                          <div className="blurOverlay" onClick={() => setShowSortMenu(false)}></div>
-                          <div className="sortDropdown" ref={sortMenuRef}>
-                            <span onClick={() => handleSortSelect("asc")}>A - Z</span>
-                            <span onClick={() => handleSortSelect("desc")}>Z - A</span>
-                            <span onClick={() => handleSortSelect("latest_added")}>Recently added</span>
-                            <span onClick={() => handleSortSelect("latest_updated")}>Recently updated</span>
-                          </div></>
+                        {showSortMenu && (
+                          <>
+                            <div
+                              className="blurOverlay"
+                              onClick={() => setShowSortMenu(false)}
+                            ></div>
 
+                            <div className="sortDropdown" ref={sortMenuRef}>
+
+                              <span onClick={() => handleSortSelect("asc")}>
+                                {sortOrder === "asc" && <FcCheckmark className="checkIcon" />}
+                                A - Z
+                              </span>
+
+                              <span onClick={() => handleSortSelect("desc")}>
+                                {sortOrder === "desc" && <FcCheckmark className="checkIcon" />}
+                                Z - A
+                              </span>
+
+                              <span onClick={() => handleSortSelect("latest_added")}>
+                                {sortOrder === "latest_added" && <FcCheckmark className="checkIcon" />}
+                                Recently added
+                              </span>
+
+                              <span onClick={() => handleSortSelect("latest_updated")}>
+                                {sortOrder === "latest_updated" && <FcCheckmark className="checkIcon" />}
+                                Recently updated
+                              </span>
+
+                            </div>
+                          </>
                         )}
                       </span>
 

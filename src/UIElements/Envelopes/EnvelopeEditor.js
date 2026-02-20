@@ -104,10 +104,10 @@ const listOptions = [
 
 
 
-const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, customElements, EnvelopeGroups, ImageData, ClientId, MasterElements, page, isEnvelope,datasetID,datasetName}) => {
+const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, customElements, EnvelopeGroups, ImageData, ClientId, MasterElements, page, isEnvelope, datasetID, datasetName }) => {
 
 
-    const [envelopeData, setEnvelopeData] = useState({ sections: [], datasetID: datasetID || '', datasetName: datasetName || '' });
+    const [envelopeData, setEnvelopeData] = useState({ sections: [], datasetID: datasetID, datasetName: datasetName });
     const [selectedElement, setSelectedElement] = useState(null); // Tracks the currently active element
     const [elements, setElements] = useState([]); // Manages all text and image elements
     const [textFont, settextFont] = useState(fontOptions[0]); // Default font
@@ -159,6 +159,7 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
     const [datasetList, setDatasetList] = useState([]);
     const [datasetSearchTerm, setDatasetSearchTerm] = useState('');
     const [datasetFetched, setDatasetFetched] = useState(false);
+    const mergedropdownref = useRef(null);
     const datasetDropdownRef = useRef(null);
 
 
@@ -196,9 +197,7 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                 setShowLetterSpacingDropdown(false);
             }
 
-            // Close merge fields dropdown when clicking outside
-            const mergeFieldsContainer = event.target.closest('.merge-fields-container');
-            if (!mergeFieldsContainer && isMergeFieldsOpen) {
+            if (mergedropdownref.current && !mergedropdownref.current.contains(event.target)) {
                 setIsMergeFieldsOpen(false);
                 setMergeFieldSearch('');
             }
@@ -303,11 +302,7 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
         if (EnvelopeGroups) {
             // hud('Please Wait...')
             setLoading(false);
-            console.log("before", envelopeData);
             setEnvelopeData(EnvelopeGroups);
-            console.log("settig Envelope Data:", EnvelopeGroups);
-            console.log("after", envelopeData);
-
         }
     }, [EnvelopeGroups]);
 
@@ -320,7 +315,6 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
             const currentElement = elements.find(el => el.id === selectedElement);
             if (currentElement) {
                 setTimeout(() => onMouseUp(), 0);
-
             }
         }
     }, [selectedElement]);
@@ -1844,8 +1838,8 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
         const customSectionId = localStorage.getItem('email');
         const requestData = {
             envelopeId,
-            datasetID: envelopeData.datasetID,
-            datasetName: envelopeData.datasetName,
+            datasetID: envelopeData.datasetID || 0,
+            datasetName: envelopeData.datasetName || "",
             customSectionUpdatedTimeStamp: new Date().toISOString(),
             customSectionAddedBy: customSectionId,
             customElements: elements,
@@ -2634,16 +2628,22 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
         setMeasurements((prev) => prev.filter((item) => item.id !== id));
     };
     const fetchDatasetNames = async () => {
+        hud("Please wait...")
         try {
             const datasetDS = new EnvelopeDS(DatasetNamesSuccessResponse.bind(this), DatasetNamesFailureResponse.bind(this));
             datasetDS.datasetNamesGet({});
         } catch (error) {
-            console.error("Failed to fetch dataset names:", error);
+            showAlert('Error parsing data', [
+                {
+                    label: 'Ok',
+                    onClick: () => { },
+                    color: 'var(--buttonColor)',
+                },
+            ]);
         }
     };
 
     function DatasetNamesSuccessResponse(response) {
-        console.log("datasetList", response);
         stopHudRotation();
         setDatasetList(response.datasets);
         setDatasetFetched(true);
@@ -2651,35 +2651,41 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
 
     function DatasetNamesFailureResponse(error) {
         stopHudRotation();
-        console.error('Failed to fetch datasets:', error);
+        showAlert(error, [
+            {
+                label: 'Ok',
+                onClick: () => { },
+                color: 'var(--buttonColor)',
+            },
+        ]);
     }
 
     return (
         <div className={`modal-overlay ${isFullscreen ? 'fullscreen-overlay' : ''}`}>
             <div className={`modal-content-editor ${isFullscreen ? 'fullscreen-modal' : ''}`}>
                 <div className="modal-header">
-    <h4>{title}</h4>
-    {(!isEnvelope && !isPreview) && (
-        <div style={{ display: 'flex', gap: '8px', marginLeft: '16px' }}>
-            <button className='preview_trigger' onClick={() => {
-                setSelectedPreviewType('regular-window');
-                setShowEnvelopeModal(true);
-            }}>Regular Window</button>
-            <button className='preview_trigger' onClick={() => {
-                setSelectedPreviewType('full-window');
-                setShowEnvelopeModal(true);
-            }}>Full Window</button>
-        </div>
-    )}
-    <div className="modal-header-controls">
-        {isFullscreen ? (
-            <img src="/expand.png" alt="ExpandPage" onClick={toggleFullscreen} style={{ cursor: 'pointer', height: '20px' }} />
-        ) : (
-            <img src="/expand.png" alt="CollapsePage" onClick={toggleFullscreen} style={{ cursor: 'pointer', height: '20px' }} />
-        )}
-        <MdCancel size={24} style={{ cursor: 'pointer', marginRight: `${isFullscreen ? '20px' : "0px"}` }} onClick={closeEditor} />
-    </div>
-</div>
+                    <h4>{title}</h4>
+                    {(!isEnvelope && !isPreview) && (
+                        <div style={{ display: 'flex', gap: '8px', marginLeft: '16px' }}>
+                            <button className='preview_trigger' onClick={() => {
+                                setSelectedPreviewType('regular-window');
+                                setShowEnvelopeModal(true);
+                            }}>Regular Window</button>
+                            <button className='preview_trigger' onClick={() => {
+                                setSelectedPreviewType('full-window');
+                                setShowEnvelopeModal(true);
+                            }}>Full Window</button>
+                        </div>
+                    )}
+                    <div className="modal-header-controls">
+                        {isFullscreen ? (
+                            <img src="/expand.png" alt="ExpandPage" onClick={toggleFullscreen} style={{ cursor: 'pointer', height: '20px' }} />
+                        ) : (
+                            <img src="/expand.png" alt="CollapsePage" onClick={toggleFullscreen} style={{ cursor: 'pointer', height: '20px' }} />
+                        )}
+                        <MdCancel size={24} style={{ cursor: 'pointer', marginRight: `${isFullscreen ? '20px' : "0px"}` }} onClick={closeEditor} />
+                    </div>
+                </div>
 
                 <div className='editor-div'>
                     {!isPreview &&
@@ -2709,7 +2715,7 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                     {/* Bold, Italic, Underline, Text Color */}
 
                                     {/* Font Family */}
-                                    <div className="form-group mb-1" style={{ marginLeft: '5px', minWidth: '10%' }}>
+                                    <div className="form-group" style={{ minWidth: '10%' }}>
                                         <select
                                             className="form-control"
                                             value={textFont}
@@ -2746,8 +2752,6 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                             style={{
                                                 width: '70px',
                                                 height: '35px',
-                                                marginLeft: '5px',
-                                                marginTop: '-3px',
                                                 borderColor: 'black',
                                                 borderRadius: '4px',
                                                 color: selectedElement && textSize ? 'blue' : 'black'
@@ -2982,7 +2986,7 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                     </div>
 
                                     {/* Merge Fields Dropdown */}
-                                    <div className="merge-fields-container" style={{ position: 'relative' }}>
+                                    <div className="merge-fields-container" ref={mergedropdownref} style={{ position: 'relative' }}>
                                         <button
                                             onMouseDown={(e) => {
                                                 e.preventDefault();
@@ -3031,8 +3035,7 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                                     boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                                                     zIndex: 2000,
                                                     minWidth: '200px',
-                                                    maxHeight: '500px',
-                                                    overflowY: 'auto'
+
                                                 }}
                                             >
                                                 <input
@@ -3053,131 +3056,138 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                                         e.stopPropagation();
                                                     }}
                                                 />
-                                                {mergeFields
-                                                    .filter(field => field.toLowerCase().includes(mergeFieldSearch.toLowerCase()))
-                                                    .map((field, index) => (
-                                                        <div
-                                                            key={index}
-                                                            onMouseDown={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                            }}
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                insertMergeField(field);
-                                                                setIsMergeFieldsOpen(false);
-                                                                setMergeFieldSearch('');
-                                                            }}
-                                                            style={{
-                                                                padding: '8px 12px',
-                                                                cursor: 'pointer',
-                                                                borderBottom: '1px solid #f0f0f0',
+                                                <div className="scroll" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                                    {mergeFields
+                                                        .filter(field => field.toLowerCase().includes(mergeFieldSearch.toLowerCase()))
+                                                        .map((field, index) => (
+                                                            <div
+                                                                key={index}
+                                                                onMouseDown={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                }}
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    insertMergeField(field);
+                                                                    setIsMergeFieldsOpen(false);
+                                                                    setMergeFieldSearch('');
+                                                                }}
+                                                                style={{
+                                                                    padding: '8px 12px',
+                                                                    cursor: 'pointer',
+                                                                    borderBottom: '1px solid #f0f0f0',
+                                                                    fontSize: '14px'
 
-                                                            }}
-                                                            onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
-                                                            onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
-                                                        >
-                                                            {field}
-                                                        </div>
-                                                    ))}
+                                                                }}
+                                                                onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                                                                onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                                                            >
+                                                                {field}
+                                                            </div>
+                                                        ))}
+                                                </div>
+
                                             </div>
                                         )}
                                     </div>
 
-{/* Dataset Name Dropdown with Search */}
-<div style={{ position: 'relative' }} ref={datasetDropdownRef}>
-    <button
-        type="button"
-        onClick={() => {
-            if (!datasetFetched) { fetchDatasetNames(); }
-            console.log("this is ", datasetList);
-            setIsDatasetDropdownOpen(!isDatasetDropdownOpen);
-        }}
-        style={{
-            cursor: 'pointer',
-            padding: '5px 10px',
-            backgroundColor: isDatasetDropdownOpen ? '#09c' : 'white',
-            color: isDatasetDropdownOpen ? 'white' : 'black',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            fontSize: '14px',
-            display: (envelopeData.datasetName || datasetName) && page !== 2 ? 'inline-block' : 'none'
-        }}
-    >
-        {envelopeData.datasetName || datasetName || 'Select Dataset'}
-    </button>
-    {isDatasetDropdownOpen && (
-        <div
-            style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                marginTop: '5px',
-                backgroundColor: 'white',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                zIndex: 2000,
-                minWidth: '200px',
-                maxHeight: '500px',
-                overflowY: 'auto'
-            }}
-        >
-            <input
-                type="text"
-                placeholder="Search dataset..."
-                value={datasetSearchTerm}
-                onChange={(e) => setDatasetSearchTerm(e.target.value)}
-                autoComplete="off"
-                style={{
-                    width: 'calc(100% - 16px)',
-                    padding: '8px',
-                    margin: '8px',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                }}
-                onClick={(e) => e.stopPropagation()}
-            />
-            {datasetList.filter(d =>
-                d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase())
-            ).length > 0 ? (
-                datasetList
-                    .filter(d => d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase()))
-                    .map(dataset => (
-                        <div
-                            key={dataset._id}
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setEnvelopeData(prevData => ({
-                                    ...prevData,
-                                    datasetID: dataset._id,
-                                    datasetName: dataset['dataset-name']
-                                }));
-                                setIsDatasetDropdownOpen(false);
-                                setDatasetSearchTerm('');
-                            }}
-                            style={{
-                                padding: '8px 12px',
-                                cursor: 'pointer',
-                                borderBottom: '1px solid #f0f0f0',
-                            }}
-                            onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
-                            onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
-                        >
-                            {dataset['dataset-name']}
-                        </div>
-                    ))
-            ) : (
-                <div style={{ padding: '8px 12px', color: '#999', fontSize: '14px' }}>
-                    No Datasets Available
-                </div>
-            )}
-        </div>
-    )}
-</div>
+                                    {/* Dataset Name Dropdown with Search */}
+                                    <div style={{ position: 'relative' }} ref={datasetDropdownRef}>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (!datasetFetched) { fetchDatasetNames(); }
+                                                console.log("this is ", datasetList);
+                                                setIsDatasetDropdownOpen(!isDatasetDropdownOpen);
+                                            }}
+                                            style={{
+                                                cursor: 'pointer',
+                                                padding: '5px 10px',
+                                                backgroundColor: isDatasetDropdownOpen ? '#09c' : 'white',
+                                                color: isDatasetDropdownOpen ? 'white' : 'black',
+                                                border: '1px solid #ccc',
+                                                borderRadius: '4px',
+                                                fontSize: '14px',
+                                                display: page !== 2 ? 'inline-block' : 'none'
+                                            }}
+                                        >
+                                            {envelopeData.datasetName || datasetName || 'Select Dataset'}
+                                        </button>
+                                        {isDatasetDropdownOpen && (
+                                            <div
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '100%',
+                                                    left: 0,
+                                                    marginTop: '5px',
+                                                    backgroundColor: 'white',
+                                                    border: '1px solid #ccc',
+                                                    borderRadius: '4px',
+                                                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                                    zIndex: 2000,
+                                                    minWidth: '200px',
+                                                    maxHeight: '350px',
+
+                                                }}
+                                            >
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search dataset..."
+                                                    value={datasetSearchTerm}
+                                                    onChange={(e) => setDatasetSearchTerm(e.target.value)}
+                                                    autoComplete="off"
+                                                    style={{
+                                                        width: 'calc(100% - 16px)',
+                                                        padding: '8px',
+                                                        margin: '8px',
+                                                        border: '1px solid #ccc',
+                                                        borderRadius: '4px',
+                                                        fontSize: '14px'
+                                                    }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                                <div className="scroll" style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                                                    {datasetList.filter(d =>
+                                                        d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase())
+                                                    ).length > 0 ? (
+                                                        datasetList
+                                                            .filter(d => d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase()))
+                                                            .map(dataset => (
+                                                                <div
+                                                                    key={dataset._id}
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        setEnvelopeData(prevData => ({
+                                                                            ...prevData,
+                                                                            datasetID: dataset['dataset-id'],
+                                                                            datasetName: dataset['dataset-name']
+                                                                        }));
+                                                                        setIsDatasetDropdownOpen(false);
+                                                                        setDatasetSearchTerm('');
+                                                                    }}
+                                                                    style={{
+                                                                        padding: '8px 12px',
+                                                                        cursor: 'pointer',
+                                                                        borderBottom: '1px solid #f0f0f0',
+                                                                        fontSize: '14px'
+                                                                    }}
+                                                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                                                                    onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                                                                >
+                                                                    {dataset['dataset-name']}
+                                                                </div>
+                                                            ))
+                                                    ) : (
+                                                        <div style={{ padding: '8px 12px', color: '#999', fontSize: '14px' }}>
+                                                            No Datasets Available
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
 
                                 </div>
                             </div>

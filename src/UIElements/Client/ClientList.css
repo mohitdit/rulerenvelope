@@ -327,7 +327,7 @@ input:checked+.slider:before {
 }
 
 .sortDropdown span {
-    display: block;
+    display: flex;
     width: 100%;
     background: white;
     padding: 3px 10px;
@@ -337,6 +337,18 @@ input:checked+.slider:before {
     color: #09c;
     transition: background 2s ease;
     border-bottom: 2px solid #eee;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.checkIcon {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--success);
+  position: absolute;
+  left: 10px;
+
 }
 
 .sortDropdown span:last-child {

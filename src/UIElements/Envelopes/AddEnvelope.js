@@ -4,6 +4,7 @@ import { useCustomContext } from '../CustomComponents/CustomComponents';
 import EnvelopeDS from '../../DataServices/EnvelopeDS';
 import ClientDS from '../../DataServices/ClientDS';
 import EnvelopeGroupListDS from '../../DataServices/EnvelopeGroupListDS';
+import { Tooltip } from 'antd';
 import './Envelope.css'
 
 function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId, isClient }) {
@@ -212,16 +213,22 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
     }
 
     const fetchDatasetNames = async () => {
+        hud("Please wait...")
         try {
             const datasetDS = new EnvelopeDS(DatasetNamesSuccessResponse.bind(this), DatasetNamesFailureResponse.bind(this));
             datasetDS.datasetNamesGet({});
         } catch (error) {
-            console.error("Failed to fetch dataset names:", error);
+            showAlert('Error parsing data', [
+                {
+                    label: 'Ok',
+                    onClick: () => { },
+                    color: 'var(--buttonColor)',
+                },
+            ]);
         }
     };
 
     function DatasetNamesSuccessResponse(response) {
-        console.log("datasetList", response);
         stopHudRotation();
         setDatasetList(response.datasets);
         setDatasetFetched(true);
@@ -229,8 +236,15 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
 
     function DatasetNamesFailureResponse(error) {
         stopHudRotation();
-        console.error('Failed to fetch datasets:', error);
+        showAlert(error, [
+            {
+                label: 'Ok',
+                onClick: () => { },
+                color: 'var(--buttonColor)',
+            },
+        ]);
     }
+
 
     const fetchEnvelopesAdd = async () => {
         const currentTimestamp = new Date().toISOString();
@@ -259,7 +273,7 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
             requestData.masterPageID = selectedMasterPage._id;
             requestData.envelopeGroupID = selectedMasterPage.envelopeGroupID;
         };
-        console.log("req-master", requestData);
+
         try {
             console.log("request data", requestData);
             const EnvelopeAddDS = new EnvelopeDS(EnvelopeAddDataSuccessResponse.bind(this), EnvelopeAddDataFailureResponse.bind(this));
@@ -524,32 +538,35 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
                                     className="envelope-searchable-dropdown-search"
                                     onClick={(e) => e.stopPropagation()}
                                 />
-                                {sortedClients && sortedClients.length > 0 ? (
-                                    sortedClients.map(client => (
-                                        <div
-                                            key={client._id}
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                setEnvelopeData(prevData => ({
-                                                    ...prevData,
-                                                    clientID: client._id,
-                                                    clientName: client.clientName
-                                                }));
-                                                setIsClientDropdownOpen(false);
-                                                setClientSearchTerm('');
-                                            }}
+                                <div className="search-data">
+                                    {sortedClients && sortedClients.length > 0 ? (
+                                        sortedClients.map(client => (
+                                            <div
+                                                key={client._id}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setEnvelopeData(prevData => ({
+                                                        ...prevData,
+                                                        clientID: client._id,
+                                                        clientName: client.clientName
+                                                    }));
+                                                    setIsClientDropdownOpen(false);
+                                                    setClientSearchTerm('');
+                                                }}
 
-                                            className="envelope-searchable-dropdown-item"
-                                        >
-                                            {client.clientName}
+                                                className="envelope-searchable-dropdown-item"
+                                            >
+                                                {client.clientName}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="envelope-searchable-dropdown-empty">
+                                            No Clients Available
                                         </div>
-                                    ))
-                                ) : (
-                                    <div className="envelope-searchable-dropdown-empty">
-                                        No Clients Available
-                                    </div>
-                                )}
+                                    )}
+                                </div>
+
                             </div>
                         )}
                     </div>
@@ -582,31 +599,34 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
                                         className="envelope-searchable-dropdown-search"
                                         onClick={(e) => e.stopPropagation()}
                                     />
-                                    {sortedGroups && sortedGroups.length > 0 ? (
-                                        sortedGroups.map(group => (
-                                            <div
-                                                key={group._id}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    setEnvelopeData(prevData => ({
-                                                        ...prevData,
-                                                        envelopeGroupID: group._id,
-                                                        envelopeGroupName: group.envelopeGroupName
-                                                    }));
-                                                    setIsGroupDropdownOpen(false);
-                                                    setGroupSearchTerm('');
-                                                }}
-                                                className="envelope-searchable-dropdown-item"
-                                            >
-                                                {group.envelopeGroupName}
+                                    <div className="search-data">
+                                        {sortedGroups && sortedGroups.length > 0 ? (
+                                            sortedGroups.map(group => (
+                                                <div
+                                                    key={group._id}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        setEnvelopeData(prevData => ({
+                                                            ...prevData,
+                                                            envelopeGroupID: group._id,
+                                                            envelopeGroupName: group.envelopeGroupName
+                                                        }));
+                                                        setIsGroupDropdownOpen(false);
+                                                        setGroupSearchTerm('');
+                                                    }}
+                                                    className="envelope-searchable-dropdown-item"
+                                                >
+                                                    {group.envelopeGroupName}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="envelope-searchable-dropdown-empty">
+                                                No Groups Available
                                             </div>
-                                        ))
-                                    ) : (
-                                        <div className="envelope-searchable-dropdown-empty">
-                                            No Groups Available
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
+
                                 </div>
                             )}
                         </div>
@@ -642,23 +662,30 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
                                     />
                                     {sortedMasterPages && sortedMasterPages.length > 0 ? (
                                         sortedMasterPages.map(masterPage => (
-                                            <div
+                                            <Tooltip
                                                 key={masterPage._id}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    setSelectedMasterPage(masterPage);
-                                                    setEnvelopeData(prevData => ({
-                                                        ...prevData,
-                                                        masterPageID: masterPage._id
-                                                    }));
-                                                    setIsMasterPageDropdownOpen(false);
-                                                    setMasterPageSearchTerm('');
-                                                }}
-                                                className="envelope-searchable-dropdown-item"
+                                                title={
+                                                    <div>{masterPage.envelopeName}</div>
+                                                }
+                                                placement="right"
                                             >
-                                                {masterPage.envelopeName}
-                                            </div>
+                                                <div
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        setSelectedMasterPage(masterPage);
+                                                        setEnvelopeData(prevData => ({
+                                                            ...prevData,
+                                                            masterPageID: masterPage._id
+                                                        }));
+                                                        setIsMasterPageDropdownOpen(false);
+                                                        setMasterPageSearchTerm('');
+                                                    }}
+                                                    className="envelope-searchable-dropdown-item"
+                                                >
+                                                    {masterPage.envelopeName}
+                                                </div>
+                                            </Tooltip>
                                         ))
                                     ) : (
                                         <div className="envelope-searchable-dropdown-empty">
@@ -673,13 +700,13 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
                     )}
 
                     {/* Dataset Name Dropdown with Search */}
-                    <div className='addEnvelope-input envelope-searchable-dropdown-wrapper' ref={isDatasetDropdownOpen ? dropdownRef : null}>
-                        <label>Dataset Name <span style={{ fontSize: '12px', color: 'gray' }}>(Optional)</span></label>
+                    {envelopeData.pageType != 2 && <div className='addEnvelope-input envelope-searchable-dropdown-wrapper' ref={isDatasetDropdownOpen ? dropdownRef : null}>
+                        <label>Dataset Name<span style={{ fontSize: '12px', color: 'gray' }}></span></label>
                         <button
                             type="button"
                             onClick={() => {
-                                if (!datasetFetched) {fetchDatasetNames();}
-                                console.log("this is ",datasetList);
+                                if (!datasetFetched) { fetchDatasetNames(); }
+
                                 setIsDatasetDropdownOpen(!isDatasetDropdownOpen);
                                 setIsClientDropdownOpen(false);
                                 setIsGroupDropdownOpen(false);
@@ -687,7 +714,7 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
                             }}
                             className={`envelope-searchable-dropdown-button ${isDatasetDropdownOpen ? 'envelope-searchable-dropdown-button-open' : ''}`}
                         >
-                            {envelopeData.datasetName || 'Select Dataset (Optional)'}
+                            {envelopeData.datasetName || 'Select Dataset'}
                         </button>
                         {isDatasetDropdownOpen && (
                             <div className="envelope-searchable-dropdown-panel">
@@ -700,38 +727,41 @@ function AddEnvelope({ onClose, onSave, title, envelopesList, activeTab, userId,
                                     className="envelope-searchable-dropdown-search"
                                     onClick={(e) => e.stopPropagation()}
                                 />
-                                {datasetList.filter(d =>
-                                    d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase())
-                                ).length > 0 ? (
-                                    datasetList
-                                        .filter(d => d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase()))
-                                        .map(dataset => (
-                                            <div
-                                                key={dataset._id}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    setEnvelopeData(prevData => ({
-                                                        ...prevData,
-                                                        datasetID: dataset['dataset-id'],
-                                                        datasetName:  dataset['dataset-name']
-                                                    }));
-                                                    setIsDatasetDropdownOpen(false);
-                                                    setDatasetSearchTerm('');
-                                                }}
-                                                className="envelope-searchable-dropdown-item"
-                                            >
-                                                {dataset['dataset-name']}
-                                            </div>
-                                        ))
-                                ) : (
-                                    <div className="envelope-searchable-dropdown-empty">
-                                        No Datasets Available
-                                    </div>
-                                )}
+                                <div className="search-data">
+                                    {datasetList.filter(d =>
+                                        d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase())
+                                    ).length > 0 ? (
+                                        datasetList
+                                            .filter(d => d['dataset-name'].toLowerCase().includes(datasetSearchTerm.toLowerCase()))
+                                            .map(dataset => (
+                                                <div
+                                                    key={dataset._id}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        setEnvelopeData(prevData => ({
+                                                            ...prevData,
+                                                            datasetID: dataset['dataset-id'],
+                                                            datasetName: dataset['dataset-name']
+                                                        }));
+                                                        setIsDatasetDropdownOpen(false);
+                                                        setDatasetSearchTerm('');
+                                                    }}
+                                                    className="envelope-searchable-dropdown-item"
+                                                >
+                                                    {dataset['dataset-name']}
+                                                </div>
+                                            ))
+                                    ) : (
+                                        <div className="envelope-searchable-dropdown-empty">
+                                            No Datasets Available
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>
+                    }
 
                     {/* <div className='radio-div'>
                         <label>Envelope Color</label>
