@@ -407,8 +407,8 @@ function EnvelopesList({ showIconsOnly }) {
     setClientId(envelope.clientID);
     setCustomElements([]);
     setPageType(envelope.pageType);
-    setDataSetID(envelope.datasetID);
-    setDataSetName(envelope.datasetName);
+    setDataSetID(envelope.datasetID || 0);
+    setDataSetName(envelope.datasetName || '');
     try {
       const selectedElements = await getCustomElements(envelope.envelopeGroupID, envelope._id, true) || [];
 

@@ -302,7 +302,7 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
         if (EnvelopeGroups) {
             // hud('Please Wait...')
             setLoading(false);
-            setEnvelopeData(EnvelopeGroups);
+            setEnvelopeData(prev => ({ ...EnvelopeGroups, datasetID: prev.datasetID, datasetName: prev.datasetName }));
         }
     }, [EnvelopeGroups]);
 
@@ -343,7 +343,7 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
     function groupSectionSuccessResponse(response) {
         stopHudRotation();
         setLoading(false);
-        setEnvelopeData(response.data);
+        setEnvelopeData(prev => ({ ...response.data, datasetID: prev.datasetID, datasetName: prev.datasetName }));
     }
 
     function groupSectionFailureResponse(response) {
@@ -2645,7 +2645,13 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
 
     function DatasetNamesSuccessResponse(response) {
         stopHudRotation();
-        setDatasetList(response.datasets);
+        const datasetsWithDefault = [
+            { "dataset-id": 0, "dataset-name": "" },
+            ...response.datasets
+        ];
+
+        setDatasetList(datasetsWithDefault);
+        // setDatasetList(response.datasets);
         setDatasetFetched(true);
     }
 
@@ -3112,7 +3118,9 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                                 display: page !== 2 ? 'inline-block' : 'none'
                                             }}
                                         >
-                                            {envelopeData.datasetName || datasetName || 'Select Dataset'}
+                                            {envelopeData.datasetID === 0
+                                                ? "Select Dataset"
+                                                : envelopeData.datasetName || datasetName || "Select Dataset"}
                                         </button>
                                         {isDatasetDropdownOpen && (
                                             <div
@@ -3159,11 +3167,13 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                                                     onClick={(e) => {
                                                                         e.preventDefault();
                                                                         e.stopPropagation();
+
                                                                         setEnvelopeData(prevData => ({
                                                                             ...prevData,
                                                                             datasetID: dataset['dataset-id'],
                                                                             datasetName: dataset['dataset-name']
                                                                         }));
+
                                                                         setIsDatasetDropdownOpen(false);
                                                                         setDatasetSearchTerm('');
                                                                     }}
@@ -3173,10 +3183,8 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                                                         borderBottom: '1px solid #f0f0f0',
                                                                         fontSize: '14px'
                                                                     }}
-                                                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
-                                                                    onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
                                                                 >
-                                                                    {dataset['dataset-name']}
+                                                                    {dataset['dataset-id'] === 0 ? "Select Dataset" : dataset['dataset-name']}
                                                                 </div>
                                                             ))
                                                     ) : (

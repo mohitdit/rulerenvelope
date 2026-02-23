@@ -339,9 +339,15 @@ function ImportEnvelope({ onClose, title, userId, isClient, setIsClientCall }) {
 
   function DatasetNamesSuccessResponse(response) {
     stopHudRotation();
-    setDatasetList(response.datasets);
+    const datasetsWithDefault = [
+        { "dataset-id": 0, "dataset-name": "" },
+        ...response.datasets
+    ];
+
+    setDatasetList(datasetsWithDefault);
+    // setDatasetList(response.datasets);
     setDatasetFetched(true);
-  }
+}
 
   function DatasetNamesFailureResponse(error) {
     stopHudRotation();
@@ -371,10 +377,11 @@ function ImportEnvelope({ onClose, title, userId, isClient, setIsClientCall }) {
       isEnvelopeEnable: true,
       envelopeAddedTimeStamp: currentTimestamp,
       envelopeUpdatedTimeStamp: currentTimestamp,
-      datasetID: envelopeData.datasetID || '',
+      datasetID: envelopeData.datasetID || 0,
       datasetName: envelopeData.datasetName || '',
     };
-    
+    console.log("request123", requestData);
+
     try {
       const EnvelopeAddDS = new EnvelopeDS(
         (response) => {
@@ -412,6 +419,8 @@ function ImportEnvelope({ onClose, title, userId, isClient, setIsClientCall }) {
 
     const requestData = {
       envelopeId: envelopeId,
+      datasetID: envelopeData.datasetID || 0,
+      datasetName: envelopeData.datasetName || '',
       customSectionUpdatedTimeStamp: new Date().toISOString(),
       customSectionAddedBy: customSectionId,
       customElements: updatedElements, // 👈 Using updated elements
@@ -705,7 +714,9 @@ function ImportEnvelope({ onClose, title, userId, isClient, setIsClientCall }) {
                 }}
                 className={`envelope-searchable-dropdown-button ${isDatasetDropdownOpen ? 'envelope-searchable-dropdown-button-open' : ''}`}
               >
-                {envelopeData.datasetName || 'Select Dataset'}
+                {envelopeData.datasetID === 0
+                  ? "Select Dataset"
+                  : envelopeData.datasetName || 'Select Dataset'}
               </button>
               {isDatasetDropdownOpen && (
                 <div className="envelope-searchable-dropdown-panel">
@@ -740,7 +751,7 @@ function ImportEnvelope({ onClose, title, userId, isClient, setIsClientCall }) {
                             }}
                             className="envelope-searchable-dropdown-item"
                           >
-                            {dataset['dataset-name']}
+                            {dataset['dataset-id'] === 0 ? "Select Dataset" : dataset['dataset-name']}
                           </div>
                         ))
                     ) : (
