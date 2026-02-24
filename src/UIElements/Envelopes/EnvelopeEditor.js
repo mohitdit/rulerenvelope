@@ -21,6 +21,7 @@ import { CiImageOn } from 'react-icons/ci';
 import { FaShapes } from 'react-icons/fa';
 import { FiAlignJustify } from "react-icons/fi";
 import { SketchPicker } from 'react-color';
+import  CustomColorPicker  from './CustomColorPicker';
 import { shapeConfigs } from './Shapes';
 import { MdFormatIndentIncrease, MdFormatIndentDecrease } from 'react-icons/md';
 import { MdFormatListBulleted, MdFormatListNumbered, MdEdit } from 'react-icons/md';
@@ -131,6 +132,8 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
     const [ImageElements, setImageElements] = useState([]);
     const [imageLoading, setImageLoading] = useState(true);
     const [selectedRange, setSelectedRange] = useState(null);
+    const savedColorPickerRangeRef = useRef(null);
+    const selectedElementRef = useRef(null);
     const [dragEnabled, setDragEnabled] = useState(true);
     const elementRefs = useRef({});
     const [isCapturing, setIsCapturing] = useState(false);
@@ -310,6 +313,45 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
     useEffect(() => {
     }, [elements, envelopeData]);
 
+
+    useEffect(() => {
+        selectedElementRef.current = selectedElement;
+    }, [selectedElement]);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            const currentSelected = selectedElementRef.current;
+            if (!currentSelected) return;
+            if (!dragEnabled) return;
+
+            const tag = document.activeElement?.tagName?.toLowerCase();
+            const isEditable = document.activeElement?.contentEditable === 'true';
+            if (tag === 'input' || tag === 'textarea' || isEditable) return;
+
+            const STEP = e.shiftKey ? 10 : 1;
+            const arrowKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+            if (!arrowKeys.includes(e.key)) return;
+
+            e.preventDefault();
+
+            const containerW = containerRef.current?.offsetWidth || Infinity;
+            const containerH = containerRef.current?.offsetHeight || Infinity;
+
+            setElements(prev => prev.map(el => {
+                if (el.id !== currentSelected) return el;
+                let { x, y } = el;
+                if (e.key === 'ArrowUp') y = Math.max(0, y - STEP);
+                if (e.key === 'ArrowDown') y = Math.min(containerH - el.height, y + STEP);
+                if (e.key === 'ArrowLeft') x = Math.max(0, x - STEP);
+                if (e.key === 'ArrowRight') x = Math.min(containerW - el.width, x + STEP);
+                return { ...el, x, y };
+            }));
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [dragEnabled]);
+
     useEffect(() => {
         if (selectedElement) {
             const currentElement = elements.find(el => el.id === selectedElement);
@@ -391,6 +433,12 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
         };
 
         // Use functional update to ensure we are working with the latest state
+        // Save current state to undo stack before adding new shape
+        const pageIndex = currentPageIndex;
+        const pageUndoStack = undoStack[pageIndex] || [];
+        setUndoStack({ ...undoStack, [pageIndex]: [...pageUndoStack, elements] });
+        setRedoStack({ ...redoStack, [pageIndex]: [] });
+
         setElements(prevElements => {
             const updatedElements = [...prevElements, newElement];
             console.log('Updated Elements:', updatedElements); // Log the updated elements
@@ -2910,21 +2958,21 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                     <div className="color-picker-container" style={{ position: 'relative' }}>
                                         <AiOutlineFontColors
                                             size={20}
-                                            onClick={toggleColorPicker}
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                toggleColorPicker();
+                                            }}
                                             style={{
                                                 cursor: 'pointer',
-                                                color: (selectedElement && textColor) || 'black', // Display the color of the selected element or default to black
+                                                color: (selectedElement && textColor) || 'black',
                                             }}
                                         />
                                         {colorPickerVisible && (
-                                            <div
-                                                style={{ position: 'absolute', zIndex: 31, marginTop: '10px' }}
-                                                onMouseDown={e => e.stopPropagation()}
-                                                onTouchStart={e => e.stopPropagation()}
-                                            >
-                                                <SketchPicker
-                                                    color={selectedElement?.textColor || textColor} // Show color of the selected element or default textColor
+                                            <div style={{ position: 'absolute', zIndex: 31, marginTop: '10px' }}>
+                                                <CustomColorPicker
+                                                    color={textColor || '#000000'}
                                                     onChange={handleColorChange}
+                                                    width={200}
 
                                                 />
                                             </div>
@@ -3671,7 +3719,7 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                                 return (
                                                     <React.Fragment >
                                                         <Rnd
-                                                            key={`${el.id}-${el.x}-${el.y}`}
+                                                            key={`${el.id}-${el.x}-${el.y}-${liveDragPosition[el.id] ? 'drag' : 'key'}`}
                                                             position={{ x: el.x, y: el.y }}
                                                             size={{ width: el.width, height: el.height }}
                                                             style={{

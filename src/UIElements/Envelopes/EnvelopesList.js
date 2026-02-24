@@ -3,6 +3,8 @@ import { useLocation } from "react-router-dom";
 import AddEnvelope from './AddEnvelope';
 import ImportEnvelope from './ImportEnvelope';
 import { IoIosSearch } from "react-icons/io";
+import { FaSort } from "react-icons/fa";
+import { FcCheckmark } from "react-icons/fc";
 import { IoRefreshCircleOutline, IoCopyOutline } from "react-icons/io5";
 import { MdEdit } from "react-icons/md";
 import './Envelope.css';
@@ -20,6 +22,8 @@ import NameEditModal from './NameEditModal';
 import PdfPreviewModal from './EnvelopePreview';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { GoCheckCircleFill } from "react-icons/go";
+import { Tooltip } from 'antd';
+import { FaInfo } from "react-icons/fa";
 
 
 
@@ -60,6 +64,10 @@ function EnvelopesList({ showIconsOnly }) {
   const [indicatorStyle, setIndicatorStyle] = useState({});
   const [isEnvelopeSelected, setIsEnvelopeSelected] = useState(false); //to toggle buttons in the preview modal
   const [filteredMasterChild, setFilteredMasterChild] = useState([]);
+  const [envSortOrder, setEnvSortOrder] = useState("latest_added");
+  const [showEnvSortMenu, setShowEnvSortMenu] = useState(false);
+  const envSortMenuRef = useRef(null);
+  const envSortIconRef = useRef(null);
   const [importModalopen, setImportModalOpen] = useState(false);
   const tabRefs = useRef([]);
   const [copiedId, setCopiedId] = useState(null);
@@ -150,6 +158,20 @@ function EnvelopesList({ showIconsOnly }) {
     };
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        envSortMenuRef.current &&
+        !envSortMenuRef.current.contains(event.target) &&
+        envSortIconRef.current &&
+        !envSortIconRef.current.contains(event.target)
+      ) {
+        setShowEnvSortMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchEnvelopes = async () => {
     hud('Please Wait...')
@@ -486,11 +508,13 @@ function EnvelopesList({ showIconsOnly }) {
     };
   }
 
-  const getPreviewEnvelope = (envelopeId) => {
+  const getPreviewEnvelope = (envelope) => {
     hud("Please Wait...");
     try {
       const requestData = {
-        env_id: envelopeId,
+        env_id: envelope._id,
+        "action": "preview",
+        "isLetter": envelope.isLetter
       };
       console.log("Request:", requestData)
       const envelopePreviewDS = new EnvelopeGroupListDS(
@@ -535,11 +559,13 @@ function EnvelopesList({ showIconsOnly }) {
   };
 
 
-  const getDownloadEnvelope = (envelopeId) => {
+  const getDownloadEnvelope = (envelope) => {
     hud("Please Wait...");
     try {
       const requestData = {
-        env_id: envelopeId,
+        env_id: envelope._id,
+        "action": "download",
+        "isLetter": envelope.isLetter
       };
       console.log("Request:", requestData)
       const envelopePreviewDS = new EnvelopeGroupListDS(
@@ -596,7 +622,7 @@ function EnvelopesList({ showIconsOnly }) {
     setLetterPreview(true);
 
     try {
-      getPreviewEnvelope(envelope._id);
+      getPreviewEnvelope(envelope);
     } catch (error) {
       console.error("Error opening preview modal:", error);
     }
@@ -610,7 +636,7 @@ function EnvelopesList({ showIconsOnly }) {
 
     try {
 
-      getDownloadEnvelope(envelope._id);
+      getDownloadEnvelope(envelope);
 
     } catch (error) {
       console.error("Error opening preview modal:", error);
@@ -743,6 +769,25 @@ function EnvelopesList({ showIconsOnly }) {
     fetchEnvelopes();
 
   }
+  const sortedEnvelopes = [...filteredEnvelopes].sort((a, b) => {
+    const nameA = a.envelopeName?.toLowerCase() || "";
+    const nameB = b.envelopeName?.toLowerCase() || "";
+    switch (envSortOrder) {
+      case "asc":
+        return nameA.localeCompare(nameB);
+      case "desc":
+        return nameB.localeCompare(nameA);
+      case "latest_added":
+        return new Date(b.envelopeAddedTimeStamp) - new Date(a.envelopeAddedTimeStamp);
+      case "latest_updated":
+        return new Date(b.envelopeUpdatedTimeStamp) - new Date(a.envelopeUpdatedTimeStamp);
+      default:
+        return 0;
+    }
+  });
+
+  const handleEnvSortMenuToggle = () => setShowEnvSortMenu(prev => !prev);
+  const handleEnvSortSelect = (sortType) => { setEnvSortOrder(sortType); setShowEnvSortMenu(false); };
 
   useEffect(() => {
     const filterEnvelopes = () => {
@@ -879,12 +924,41 @@ function EnvelopesList({ showIconsOnly }) {
         </div>
       </div>
       <div className='mt-4'>
-        <div className='table-content-env-list'>
+        <div className='table-content-envelopeletters-list'>
           <table className={`table table-bordered table-scrollable ${activeTab === "Master-Child" ? 'master-envelope-table' : ''}`}  >
             <thead className="thead-dark">
               <tr>
                 <th>ID</th>
-                <th>Envelope Name</th>
+                <th>
+                  <span>
+                    Envelope Name{" "}
+                    <span ref={envSortIconRef} onClick={handleEnvSortMenuToggle} style={{ cursor: "pointer", position: "relative" }}>
+                      <FaSort color="#09c" size={15} />
+                      {showEnvSortMenu && (
+                        <>
+                          <div className="sortDropdown" ref={envSortMenuRef}>
+                            <span onClick={() => handleEnvSortSelect("asc")}>
+                              {envSortOrder === "asc" && <FcCheckmark className="checkIcon" />}
+                              A - Z
+                            </span>
+                            <span onClick={() => handleEnvSortSelect("desc")}>
+                              {envSortOrder === "desc" && <FcCheckmark className="checkIcon" />}
+                              Z - A
+                            </span>
+                            <span onClick={() => handleEnvSortSelect("latest_added")}>
+                              {envSortOrder === "latest_added" && <FcCheckmark className="checkIcon" />}
+                              Recently added
+                            </span>
+                            <span onClick={() => handleEnvSortSelect("latest_updated")}>
+                              {envSortOrder === "latest_updated" && <FcCheckmark className="checkIcon" />}
+                              Recently updated
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </span>
+                  </span>
+                </th>
                 {activeTab === 'All' && <th>Type</th>}
                 <th>Client Name</th>
                 <th>Group Name</th>
@@ -895,22 +969,25 @@ function EnvelopesList({ showIconsOnly }) {
             <tbody style={{ maxHeight: tableHeight }}>
               {activeTab !== "Master-Child" ? (
                 filteredEnvelopes.length > 0 ? (
-                  filteredEnvelopes.map((envelope, index) => (
+                  sortedEnvelopes.map((envelope, index) => (
                     <tr key={index}>
-                      <td className='table-rows'>{copiedId === envelope._id ? (
-                        <GoCheckCircleFill
-                          size={20}
-                          style={{ marginRight: '8px', color: 'green' }}
-                        />
-                      ) : (
-                        <IoCopyOutline
-                          className='edit-icon-client'
-                          size={20}
-                          style={{ marginRight: '8px', cursor: 'pointer' }}
-                          onClick={() => handleCopy(envelope._id)}
-                        />
-                      )}
-                        {envelope._id}</td>
+                      <td className='table-rows'>
+                        <Tooltip title={envelope._id} style={{ userSelect: 'none' }}>
+                          <span
+                            style={{ position: 'relative', display: 'inline-block', width: '20px', height: '20px', cursor: 'pointer', marginRight: '12px' }}
+                            onClick={() => handleCopy(envelope._id)}
+                          >
+                            {copiedId === envelope._id ? (
+                              <GoCheckCircleFill size={20} style={{ color: 'green', position: 'absolute', top: 0, left: 0 }} />
+                            ) : (
+                              <>
+                                <IoCopyOutline className='edit-icon-client' size={30} style={{ position: 'absolute', top: 0, left: 0 }} />
+                                <FaInfo size={14} style={{ position: 'absolute', top: '80%', left: '85%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', color: '#09c' }} />
+                              </>
+                            )}
+                          </span>
+                        </Tooltip>
+                      </td>
                       <td className="table-rows">
                         {envelope.envelopeName.split("_").map((part, i, arr) => (
                           <span key={i}>
@@ -953,20 +1030,23 @@ function EnvelopesList({ showIconsOnly }) {
                     filteredMasterChild.map(({ master, children }) => (
                       <>
                         <tr key={master.id} >
-                          <td className='table-rows' style={{ fontWeight: '600', fontSize: '14px', color: '#09c' }}>{copiedId === master._id ? (
-                            <GoCheckCircleFill
-                              size={20}
-                              style={{ marginRight: '8px', color: 'green' }}
-                            />
-                          ) : (
-                            <IoCopyOutline
-                              className='edit-icon-client'
-                              size={20}
-                              style={{ marginRight: '8px', cursor: 'pointer' }}
-                              onClick={() => handleCopy(master._id)}
-                            />
-                          )}
-                            {master._id}</td>
+                          <td className='table-rows' style={{ fontWeight: '600', fontSize: '14px', color: '#09c' }}>
+                            <Tooltip title={master._id}>
+                              <span
+                                style={{ position: 'relative', display: 'inline-block', width: '20px', height: '20px', cursor: 'pointer', marginRight: '8px' }}
+                                onClick={() => handleCopy(master._id)}
+                              >
+                                {copiedId === master._id ? (
+                                  <GoCheckCircleFill size={20} style={{ color: 'green', position: 'absolute', top: 0, left: 0 }} />
+                                ) : (
+                                  <>
+                                    <IoCopyOutline className='edit-icon-client' size={20} style={{ position: 'absolute', top: 0, left: 0 }} />
+                                    <FaInfo size={10} style={{ position: 'absolute', top: '55%', left: '60%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', color: '#09c' }} />
+                                  </>
+                                )}
+                              </span>
+                            </Tooltip>
+                          </td>
                           <td className='table-rows' style={{ fontWeight: '600', fontSize: '14px', color: '#09c', paddingLeft: '15px' }}>
                             {master.envelopeName}
                           </td>
@@ -984,20 +1064,23 @@ function EnvelopesList({ showIconsOnly }) {
 
                         {children.map((child) => (
                           <tr key={child.id}>
-                            <td className='table-rows' style={{ fontWeight: '600', fontSize: '14px', color: '#09c' }}>{copiedId === child._id ? (
-                              <GoCheckCircleFill
-                                size={20}
-                                style={{ marginRight: '8px', color: 'green' }}
-                              />
-                            ) : (
-                              <IoCopyOutline
-                                className='edit-icon-client'
-                                size={20}
-                                style={{ marginRight: '8px', cursor: 'pointer' }}
-                                onClick={() => handleCopy(child._id)}
-                              />
-                            )}
-                              {child._id}</td>
+                            <td className='table-rows' style={{ fontWeight: '600', fontSize: '14px', color: '#09c' }}>
+                              <Tooltip title={child._id}>
+                                <span
+                                  style={{ position: 'relative', display: 'inline-block', width: '20px', height: '20px', cursor: 'pointer', marginRight: '8px' }}
+                                  onClick={() => handleCopy(child._id)}
+                                >
+                                  {copiedId === child._id ? (
+                                    <GoCheckCircleFill size={20} style={{ color: 'green', position: 'absolute', top: 0, left: 0 }} />
+                                  ) : (
+                                    <>
+                                      <IoCopyOutline className='edit-icon-client' size={20} style={{ position: 'absolute', top: 0, left: 0 }} />
+                                      <FaInfo size={10} style={{ position: 'absolute', top: '55%', left: '60%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', color: '#09c' }} />
+                                    </>
+                                  )}
+                                </span>
+                              </Tooltip>
+                            </td>
                             <td className='table-rows' style={{ paddingLeft: '28px' }}>{child.envelopeName}</td>
                             <td className='table-rows'>{child.clientName}</td>
                             <td className='table-rows'>{child.envelopeGroupName}</td>
@@ -1074,7 +1157,7 @@ function EnvelopesList({ showIconsOnly }) {
           isEnvelope={isEnvelopeSelected}
           datasetID={dataSetID}
           datasetName={dataSetName}
-         
+
         />
 
       }

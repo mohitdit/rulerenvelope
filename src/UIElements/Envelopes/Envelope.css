@@ -62,6 +62,17 @@
     /* box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.2); */
 }
 
+.table-content-envelopeletters-list {
+    width: 100%;
+    background-color: var(--white);
+    border-radius: 5px;
+    padding: 20px;
+    /* height: 695px; */
+    overflow: auto;
+    justify-content: center;
+    align-items: center;
+    /* box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.2); */
+}
 /* @media (max-width: 1400px) {
     .table-content-env-list{
         width: 100%;
@@ -116,6 +127,21 @@
     box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
     /* height: auto; */
 }
+.table-content-envelopeletters-list table {
+    width: 95%;
+    min-width: 30%;
+    /* table-layout: fixed;  */
+    margin: 0 auto;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+    /* height: auto; */
+}
+
+.table-content-envelopeletters-list table th:first-child,
+.table-content-envelopeletters-list table td:first-child {
+    width: 90px;
+    max-width: 90px;
+    min-width: 90px;
+}
 
 .table-content-env-list th {
     font-weight: 500 !important;
@@ -124,6 +150,11 @@
 
 }
 
+.table-content-envelopeletters-list th {
+    font-weight: 500 !important;
+    background-color: #f8f9fa;
+    text-align: center;
+}
 /* .table-content-env th,
 .table-content-env td {
     text-align: center;
@@ -144,7 +175,16 @@
     /* Allow text to wrap */
     border: none;
 }
-
+.table-content-envelopeletters-list th,
+.table-content-envelopeletters-list td {
+    text-align: center;
+    padding: 10px;
+    overflow: visible;
+    text-overflow: initial;
+    white-space: normal;
+    /* Allow text to wrap */
+    border: none;
+}
 
 .table-content-env-list td {
     background-color: var(--white);
@@ -152,11 +192,18 @@
     color: rgba(0, 0, 0, 0.699);
 
 }
+.table-content-envelopeletters-list td {
+    background-color: var(--white);
+    font-size: 14px;
+    color: rgba(0, 0, 0, 0.699);
 
+}
+.table-content-envelopeletters-list tr:hover td {
+    background-color: #f8f9fa;
+}
 .table-content-env-list tr:hover td {
     background-color: #f8f9fa;
 }
-
 .action {
     display: flex;
     /* Ensures even spacing between icons */
