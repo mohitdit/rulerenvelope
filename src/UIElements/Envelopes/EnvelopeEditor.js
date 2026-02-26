@@ -21,7 +21,7 @@ import { CiImageOn } from 'react-icons/ci';
 import { FaShapes } from 'react-icons/fa';
 import { FiAlignJustify } from "react-icons/fi";
 import { SketchPicker } from 'react-color';
-import  CustomColorPicker  from './CustomColorPicker';
+import CustomColorPicker from './CustomColorPicker';
 import { shapeConfigs } from './Shapes';
 import { MdFormatIndentIncrease, MdFormatIndentDecrease } from 'react-icons/md';
 import { MdFormatListBulleted, MdFormatListNumbered, MdEdit } from 'react-icons/md';
@@ -311,6 +311,18 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
 
 
     useEffect(() => {
+        console.log("Print margins raw (in):", {
+            top: envelopeData.printMarginTop || '0',
+            left: envelopeData.printMarginLeft || '0',
+            right: envelopeData.printMarginRight || '0',
+            bottom: envelopeData.printMarginBottom || '0',
+        });
+        console.log("Print margins computed (px):", {
+            top: toPx(envelopeData.printMarginTop || '0'),
+            left: toPx(envelopeData.printMarginLeft || '0'),
+            right: toPx(envelopeData.printMarginRight || '0'),
+            bottom: toPx(envelopeData.printMarginBottom || '0'),
+        });
     }, [elements, envelopeData]);
 
 
@@ -894,6 +906,8 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
 
         if (selectedNode) {
             setSelectedRange(range.cloneRange());
+            // ── Save a ref copy too — this survives DOM mutations and re-renders ──
+            savedColorPickerRangeRef.current = range.cloneRange();
             const computedStyles = window.getComputedStyle(selectedNode);
             const computedFontFamily = computedStyles.fontFamily.replace(/['"]/g, '').split(',')[0];
             const matchedFont = fontOptions.find(option => option.value.includes(computedFontFamily));
@@ -1155,9 +1169,13 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
     // Applying the Color to the selected range functionality
 
     const toggleColorPicker = () => {
-        setShowLetterSpacingDropdown(false)
-        setShowLineSpacingDropdown(false)
-        setColorPickerVisible(!colorPickerVisible);
+        setShowLetterSpacingDropdown(false);
+        setShowLineSpacingDropdown(false);
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0 && !sel.getRangeAt(0).collapsed) {
+            savedColorPickerRangeRef.current = sel.getRangeAt(0).cloneRange();
+        }
+        setColorPickerVisible(prev => !prev);
         setIsAlignMentOpen(false);
         setListTypeOpen(false);
         setIsMergeFieldsOpen(false);
@@ -1256,17 +1274,66 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
         }
     };
 
+    const handleColorStyleChange = (value) => {
+        if (savedColorPickerRangeRef.current) {
+            try {
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(savedColorPickerRangeRef.current);
+            } catch (_) { }
+        }
 
-    const handleColorChange = (color) => {
+        const selection = window.getSelection();
+        const range = selection?.rangeCount > 0 ? selection.getRangeAt(0) : null;
+
+        if (!range || range.collapsed) {
+            showToast({ message: "No text selected to apply the color." });
+            return;
+        }
+
+        try {
+            const span = document.createElement('span');
+            span.style.color = value;
+            const contents = range.extractContents();
+            const applyRecursive = (node) => {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    node.style.color = value;
+                    node.childNodes.forEach(applyRecursive);
+                }
+            };
+            contents.childNodes.forEach(applyRecursive);
+            span.appendChild(contents);
+            range.deleteContents();
+            range.insertNode(span);
+
+            // Update saved range to point at new span so next color pick works (Issue 2)
+            // Do NOT call setElements here — that would re-render the contentEditable
+            // and destroy this range (Issue 2 root cause)
+            const newRange = document.createRange();
+            newRange.selectNodeContents(span);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+            savedColorPickerRangeRef.current = newRange.cloneRange();
+
+        } catch (error) {
+            console.error('Error applying color:', error);
+        }
+    };
+
+    const handleColorChange = (color, applyNow = false) => {
         console.log("Selected:", selectedElement);
         settextColor(color.hex)
         if (!selectedElement) return;
-
+    
         const element = elements.find(el => el.id === selectedElement);
         if (!element) return;
-
+    
+        const { r, g, b, a } = color.rgb;
+        const cssColor = a < 1 ? `rgba(${r},${g},${b},${a})` : color.hex;
+    
+        //poluting undostack so comented
         saveStateToUndoStack(elements);
-
+    
         // Update shape type
         if (element.type === 'shape') {
             let updatedContent = element.content;
@@ -1274,39 +1341,33 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
             // Replace background-color if present
             updatedContent = updatedContent.replace(
                 /background-color\s*:\s*[^;"]+/g,
-                `background-color: ${color.hex}`
+                `background-color: ${cssColor}`
             );
 
             // Replace border color if present
             updatedContent = updatedContent.replace(
                 /border\s*:\s*([\d\w\s]+?)\s+(solid|dashed|dotted|double|groove|ridge|inset|outset)\s*[^;"]+/gi,
-                (match, width, style) => `border: ${width} ${style} ${color.hex}`
+                (match, width, style) => `border: ${width} ${style} ${cssColor}`
             );
 
             // Replace text color if present
             updatedContent = updatedContent.replace(
                 /color\s*:\s*[^;"]+/g,
-                `color: ${color.hex}`
+                `color: ${cssColor}`
             );
-
             const updatedElement = {
                 ...element,
                 content: updatedContent,
-                shapeColor: color.hex,
+                shapeColor: cssColor
             };
 
             setElements(prevElements =>
                 prevElements.map(el => el.id === selectedElement ? updatedElement : el)
             );
-        }
-
-        // Update non-shape type (e.g., text)
-        else {
-            const updatedElements = elements.map(el =>
-                el.id === selectedElement ? { ...el, textColor: color.hex } : el
-            );
-            setElements(updatedElements);
-            handleStyleChange("color", color.hex);
+        } else {
+            if (applyNow) {
+                handleColorStyleChange(cssColor);
+            }
         }
     };
 
@@ -1874,7 +1935,13 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
     //converting the Inches to pixels
 
     const inchesToPixels = (inches) => {
-        return inches * 96;  // 96 pixels per inch
+        const n = Number.parseFloat(inches ?? 0);
+        return Number.isFinite(n) ? n * 96 : 0; // 96 pixels per inch
+    };
+
+    const toPx = (inches) => {
+        const pixelValue = inchesToPixels(inches);
+        return `${pixelValue.toFixed(3).replace(/\.?0+$/, '')}px`;
     };
 
     //converting the Pixels to inches
@@ -2968,15 +3035,18 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                             }}
                                         />
                                         {colorPickerVisible && (
-                                            <div style={{ position: 'absolute', zIndex: 31, marginTop: '10px' }}>
-                                                <CustomColorPicker
-                                                    color={textColor || '#000000'}
-                                                    onChange={handleColorChange}
-                                                    width={200}
-
-                                                />
-                                            </div>
-                                        )}
+    <div 
+        style={{ position: 'absolute', zIndex: 31, marginTop: '10px' }}
+        onKeyDown={(e) => e.stopPropagation()}  // ← add this
+    >
+        <CustomColorPicker
+            color={textColor || '#000000'}
+            onChange={handleColorChange}
+            onApply={() => setColorPickerVisible(false)}
+            width={200}
+        />
+    </div>
+)}
                                     </div>
                                     <div className='Line-spacing d-flex'>
                                         <ImTextHeight
@@ -3452,8 +3522,10 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                         className='envelope-2'
                                         style={{
                                             position: 'absolute',
-                                            top: `${inchesToPixels(envelopeData.printMarginTop || '0')}px`,
-                                            left: `${inchesToPixels(envelopeData.printMarginLeft || '0')}px`,
+                                            top: toPx(envelopeData.printMarginTop || '0'),
+                                            left: toPx(envelopeData.printMarginLeft || '0'),
+                                            right: toPx(envelopeData.printMarginRight || '0'),
+                                            bottom: toPx(envelopeData.printMarginBottom || '0'),
                                             width: `calc(${inchesToPixels(envelopeData.envelopeWidth)}px - ${inchesToPixels(envelopeData.printMarginLeft || '0')}px - ${inchesToPixels(envelopeData.printMarginRight || '0')}px)`,
                                             height: `calc(${inchesToPixels(envelopeData.envelopeHeight)}px - ${inchesToPixels(envelopeData.printMarginTop || '0')}px - ${inchesToPixels(envelopeData.printMarginBottom || '0')}px)`,
                                             border: '1px solid black',
@@ -3921,7 +3993,7 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                                                     style={{
                                                                         width: "100%",
                                                                         height: "100%",
-                                                                        padding: "5px",
+                                                                        padding: "1px",
                                                                         overflow: "hidden",
                                                                         textOverflow: "ellipsis",
                                                                         whiteSpace: "pre-wrap",
@@ -3958,6 +4030,14 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                                                         }
                                                                     }}
                                                                     onDragOver={(e) => e.preventDefault()}
+                                                                    onBlur={(e) => {
+                                                                        const liveContent = e.currentTarget.innerHTML;
+                                                                        if (liveContent !== undefined && liveContent !== el.content) {
+                                                                            setElements(prev => prev.map(item =>
+                                                                                item.id === el.id ? { ...item, content: liveContent } : item
+                                                                            ));
+                                                                        }
+                                                                    }}
                                                                     dangerouslySetInnerHTML={{ __html: el.content || '' }} // Add ZWS if empty
                                                                 />
                                                             )}
