@@ -1334,23 +1334,23 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
         console.log("Selected:", selectedElement);
         settextColor(color.hex)
         if (!selectedElement) return;
-    
+
         const element = elements.find(el => el.id === selectedElement);
         if (!element) return;
-    
+
         const { r, g, b, a } = color.rgb;
         const cssColor = a < 1 ? `rgba(${r},${g},${b},${a})` : color.hex;
-    
+
         // CHANGE 1: Only save to undo when user commits the color (applyNow),
         // not on every drag frame. This gives one undo entry per color applied.
         if (applyNow) {
             saveStateToUndoStack(elements);
         }
-    
+
         // Update shape type
         if (element.type === 'shape') {
             let updatedContent = element.content;
-    
+
             updatedContent = updatedContent.replace(
                 /background-color\s*:\s*[^;"]+/g,
                 `background-color: ${cssColor}`
@@ -1368,7 +1368,7 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                 content: updatedContent,
                 shapeColor: cssColor
             };
-    
+
             setElements(prevElements =>
                 prevElements.map(el => el.id === selectedElement ? updatedElement : el)
             );
@@ -1724,9 +1724,9 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
 
         // --- SECTION 1: POSITIONING ---
         let range;
-        const isDragEnabled = dragEnabled;
+
         const rangeContainer = selectedRange?.commonAncestorContainer;
-        const isValidCursor = !isDragEnabled && selectedRange &&
+        const isValidCursor = selectedRange &&
             containerElement.contains(rangeContainer?.nodeType === Node.TEXT_NODE ? rangeContainer.parentNode : rangeContainer);
 
         if (isValidCursor) {
@@ -2825,8 +2825,8 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                 <div className='Buttons-div'>
                                     {page !== 2 && (
                                         <img
-                                        crossOrigin="anonymous"    
-                                        src="/addpageicon.webp"
+                                            crossOrigin="anonymous"
+                                            src="/addpageicon.webp"
                                             alt="Add Page"
                                             onClick={addPage}
                                             style={{ cursor: 'pointer', height: '30px' }}
@@ -3055,7 +3055,9 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                                     onChange={handleColorChange}
                                                     onApply={() => setColorPickerVisible(false)}
                                                     width={200}
-                                                    containerRef={containerRef}   // ← ADD THIS ONE LINE
+                                                    containerRef={containerRef}
+                                                    hud={hud}                        
+                                                    stopHudRotation={stopHudRotation} 
                                                 />
                                             </div>
                                         )}

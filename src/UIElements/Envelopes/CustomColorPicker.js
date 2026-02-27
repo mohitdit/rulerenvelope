@@ -65,7 +65,7 @@ const PRESET_ROWS = [
  *   containerRef – React ref pointing at the element to sample for eyedropper
  *                  (pass the editor's containerRef from EnvelopeEditor)
  */
-const CustomColorPicker = ({ color = '#ff0000', onChange, onApply, width = 252, containerRef }) => {
+const CustomColorPicker = ({ color, onChange, onApply, width, containerRef, hud, stopHudRotation }) => {
     const initFromHex = (hex) => {
         const rgb = hexToRgb(hex || '#ff0000');
         if (!rgb) return { hsv: [0, 1, 1], rgb: [255, 0, 0] };
@@ -95,7 +95,7 @@ const CustomColorPicker = ({ color = '#ff0000', onChange, onApply, width = 252, 
     const [aInput, setAInput] = useState('100');
 
     // ── eyedropper ──
-    const { pickColor, isActive: eyeDropperActive } = useEyeDropper();
+    const { pickColor, isActive: eyeDropperActive } = useEyeDropper(hud, stopHudRotation);
 
     const svRef = useRef(null);
     const hueRef = useRef(null);
