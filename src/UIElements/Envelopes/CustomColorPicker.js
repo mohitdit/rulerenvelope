@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { CgColorPicker } from 'react-icons/cg';
+import { useEyeDropper } from './useEyeDropper';   // ← new hook
 
 // ─── Color Helpers ────────────────────────────────────────────────────────────
 
@@ -55,7 +56,16 @@ const PRESET_ROWS = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const CustomColorPicker = ({ color = '#ff0000', onChange, onApply, width = 252 }) => {
+/**
+ * Props:
+ *   color       – current hex color string
+ *   onChange    – callback({ hex, rgb: { r,g,b,a } }, applyNow?)
+ *   onApply     – called when user "commits" the color (Enter / swatch click)
+ *   width       – picker width in px (default 252)
+ *   containerRef – React ref pointing at the element to sample for eyedropper
+ *                  (pass the editor's containerRef from EnvelopeEditor)
+ */
+const CustomColorPicker = ({ color = '#ff0000', onChange, onApply, width = 252, containerRef }) => {
     const initFromHex = (hex) => {
         const rgb = hexToRgb(hex || '#ff0000');
         if (!rgb) return { hsv: [0, 1, 1], rgb: [255, 0, 0] };
@@ -83,6 +93,9 @@ const CustomColorPicker = ({ color = '#ff0000', onChange, onApply, width = 252 }
     const [gInput, setGInput] = useState(String(init.rgb[1]));
     const [bInput, setBInput] = useState(String(init.rgb[2]));
     const [aInput, setAInput] = useState('100');
+
+    // ── eyedropper ──
+    const { pickColor, isActive: eyeDropperActive } = useEyeDropper();
 
     const svRef = useRef(null);
     const hueRef = useRef(null);
@@ -131,6 +144,32 @@ const CustomColorPicker = ({ color = '#ff0000', onChange, onApply, width = 252 }
         setAInput(String(Math.round(a)));
         onChange && onChange({ hex, rgb: { r, g, b, a: a / 100 } });
     }, [onChange]);
+
+    // ── Apply a sampled { hex, r, g, b } directly into all picker state ──
+    const applyPickedColor = useCallback(({ hex, r, g, b }) => {
+        const hsv = rgbToHsv(r, g, b);
+        setHue(hsv[0]); setSat(hsv[1]); setVal(hsv[2]);
+        setHexInput(hex.replace('#', '').toUpperCase());
+        setRInput(String(r)); setGInput(String(g)); setBInput(String(b));
+        onChange && onChange({ hex, rgb: { r, g, b, a: alpha / 100 } });
+    }, [onChange, alpha]);
+
+    // ── EyeDropper click handler ──
+    const handleEyeDropper = useCallback(async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+            // Pass the editor container ref so the fallback loupe knows what
+            // DOM area to snapshot.  If not provided, falls back to body.
+            const picked = await pickColor(containerRef);
+            applyPickedColor(picked);
+        } catch (err) {
+            // User cancelled (Esc) — silently ignore
+            if (err?.message !== 'EyeDropper cancelled') {
+                console.warn('EyeDropper error:', err);
+            }
+        }
+    }, [pickColor, containerRef, applyPickedColor]);
 
     // ── Canvas draws ──
     useEffect(() => {
@@ -318,6 +357,7 @@ const CustomColorPicker = ({ color = '#ff0000', onChange, onApply, width = 252 }
             e.preventDefault();
             e.stopPropagation();
             applyHexColor(e.currentTarget.value);
+            const [r, g, b] = currentRgb();
             onChange && onChange({ hex: getCurrentHex(), rgb: { r, g, b, a: alpha / 100 } }, true);
             onApply && onApply();
         }
@@ -337,6 +377,7 @@ const CustomColorPicker = ({ color = '#ff0000', onChange, onApply, width = 252 }
             else if (ch === 'g') bInputRef.current?.focus();
             else if (ch === 'b') aInputRef.current?.focus();
             else if (ch === 'a') {
+                const [r, g, b] = currentRgb();
                 onChange && onChange({ hex: getCurrentHex(), rgb: { r, g, b, a: alpha / 100 } }, true);
                 onApply && onApply();
             }
@@ -482,6 +523,7 @@ const CustomColorPicker = ({ color = '#ff0000', onChange, onApply, width = 252 }
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
                     <div
+                        title="Apply color"
                         style={{ width: 36, height: 36, flexShrink: 0, borderRadius: '3px', border: '1px solid #ccc', background: `rgba(${r},${g},${b},${alpha / 100})`, marginTop: '2px', cursor: 'pointer' }}
                         onMouseDown={(e) => {
                             e.preventDefault();
@@ -489,12 +531,40 @@ const CustomColorPicker = ({ color = '#ff0000', onChange, onApply, width = 252 }
                             onApply && onApply();
                         }}
                     />
-                    <CgColorPicker
-                        size={30}
-                        style={{ color: '#09c' }}
-                    >
 
-                    </CgColorPicker>
+                    {/* ── EyeDropper icon ── */}
+                    <div
+                        title={
+                            'EyeDropper' in window
+                                ? 'Pick color from screen'
+                                : 'Pick color from editor (Safari/Firefox fallback)'
+                        }
+                        onMouseDown={handleEyeDropper}
+                        style={{
+                            cursor: eyeDropperActive ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 28,
+                            height: 28,
+                            borderRadius: '4px',
+                            border: eyeDropperActive
+                                ? '1.5px solid #09c'
+                                : '1.5px solid transparent',
+                            background: eyeDropperActive
+                                ? 'rgba(0,153,204,0.10)'
+                                : 'transparent',
+                            transition: 'all 0.15s ease',
+                        }}
+                    >
+                        <CgColorPicker
+                            size={22}
+                            style={{
+                                color: eyeDropperActive ? '#09c' : '#555',
+
+                            }}
+                        />
+                    </div>
                 </div>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', justifyContent: 'center' }}>
                     {/* Hex */}

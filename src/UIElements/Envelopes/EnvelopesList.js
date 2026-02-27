@@ -23,7 +23,7 @@ import PdfPreviewModal from './EnvelopePreview';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { GoCheckCircleFill } from "react-icons/go";
 import { Tooltip } from 'antd';
-import { FaInfo } from "react-icons/fa";
+import { BsInfo } from "react-icons/bs";
 
 
 
@@ -67,7 +67,6 @@ function EnvelopesList({ showIconsOnly }) {
   const [envSortOrder, setEnvSortOrder] = useState("latest_added");
   const [showEnvSortMenu, setShowEnvSortMenu] = useState(false);
   const envSortMenuRef = useRef(null);
-  const envSortIconRef = useRef(null);
   const [importModalopen, setImportModalOpen] = useState(false);
   const tabRefs = useRef([]);
   const [copiedId, setCopiedId] = useState(null);
@@ -160,13 +159,8 @@ function EnvelopesList({ showIconsOnly }) {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        envSortMenuRef.current &&
-        !envSortMenuRef.current.contains(event.target) &&
-        envSortIconRef.current &&
-        !envSortIconRef.current.contains(event.target)
-      ) {
-        setShowEnvSortMenu(false);
+      if (envSortMenuRef.current && !envSortMenuRef.current.contains(event.target)) {
+        setShowEnvSortMenu(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -178,6 +172,7 @@ function EnvelopesList({ showIconsOnly }) {
     try {
       const envelopeDS = new EnvelopeDS(EnvelopeDataSuccessResponse.bind(this), EnvelopeDataFailureResponse.bind(this));
       envelopeDS.fetchEnvelopes();
+      console.log('envelopeDS', envelopeDS)
     } catch (error) {
       console.error("Failed to fetch envelopes:", error);
     }
@@ -786,7 +781,7 @@ function EnvelopesList({ showIconsOnly }) {
     }
   });
 
-  const handleEnvSortMenuToggle = () => setShowEnvSortMenu(prev => !prev);
+  const handleEnvSortMenuToggle = () => setShowEnvSortMenu(!showEnvSortMenu);
   const handleEnvSortSelect = (sortType) => { setEnvSortOrder(sortType); setShowEnvSortMenu(false); };
 
   useEffect(() => {
@@ -932,10 +927,14 @@ function EnvelopesList({ showIconsOnly }) {
                 <th>
                   <span>
                     Envelope Name{" "}
-                    <span ref={envSortIconRef} onClick={handleEnvSortMenuToggle} style={{ cursor: "pointer", position: "relative" }}>
+                    <span onClick={handleEnvSortMenuToggle} style={{ cursor: "pointer", position: "relative" }}>
                       <FaSort color="#09c" size={15} />
                       {showEnvSortMenu && (
                         <>
+                          <div
+                            className="blurOverlay"
+                            onClick={() => setShowEnvSortMenu(false)}
+                          ></div>
                           <div className="sortDropdown" ref={envSortMenuRef}>
                             <span onClick={() => handleEnvSortSelect("asc")}>
                               {envSortOrder === "asc" && <FcCheckmark className="checkIcon" />}
@@ -982,7 +981,7 @@ function EnvelopesList({ showIconsOnly }) {
                             ) : (
                               <>
                                 <IoCopyOutline className='edit-icon-client' size={30} style={{ position: 'absolute', top: 0, left: 0 }} />
-                                <FaInfo size={14} style={{ position: 'absolute', top: '80%', left: '85%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', color: '#09c' }} />
+                                <BsInfo size={14} style={{ position: 'absolute', top: '85%', left: '85%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', color: '#09c' }} />
                               </>
                             )}
                           </span>
@@ -1041,7 +1040,7 @@ function EnvelopesList({ showIconsOnly }) {
                                 ) : (
                                   <>
                                     <IoCopyOutline className='edit-icon-client' size={20} style={{ position: 'absolute', top: 0, left: 0 }} />
-                                    <FaInfo size={10} style={{ position: 'absolute', top: '55%', left: '60%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', color: '#09c' }} />
+                                    <BsInfo size={10} style={{ position: 'absolute', top: '55%', left: '60%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', color: '#09c' }} />
                                   </>
                                 )}
                               </span>
@@ -1075,7 +1074,7 @@ function EnvelopesList({ showIconsOnly }) {
                                   ) : (
                                     <>
                                       <IoCopyOutline className='edit-icon-client' size={20} style={{ position: 'absolute', top: 0, left: 0 }} />
-                                      <FaInfo size={10} style={{ position: 'absolute', top: '55%', left: '60%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', color: '#09c' }} />
+                                      <BsInfo size={10} style={{ position: 'absolute', top: '55%', left: '60%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', color: '#09c' }} />
                                     </>
                                   )}
                                 </span>

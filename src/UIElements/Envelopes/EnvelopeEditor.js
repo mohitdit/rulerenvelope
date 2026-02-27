@@ -1318,6 +1318,16 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
         } catch (error) {
             console.error('Error applying color:', error);
         }
+        if (selectedElement) {
+            const containerEl = elementRefs.current[selectedElement];
+            if (containerEl) {
+                setElements(prev => prev.map(el =>
+                    el.id === selectedElement
+                        ? { ...el, content: containerEl.innerHTML }
+                        : el
+                ));
+            }
+        }
     };
 
     const handleColorChange = (color, applyNow = false) => {
@@ -1331,26 +1341,24 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
         const { r, g, b, a } = color.rgb;
         const cssColor = a < 1 ? `rgba(${r},${g},${b},${a})` : color.hex;
     
-        //poluting undostack so comented
-        saveStateToUndoStack(elements);
+        // CHANGE 1: Only save to undo when user commits the color (applyNow),
+        // not on every drag frame. This gives one undo entry per color applied.
+        if (applyNow) {
+            saveStateToUndoStack(elements);
+        }
     
         // Update shape type
         if (element.type === 'shape') {
             let updatedContent = element.content;
-
-            // Replace background-color if present
+    
             updatedContent = updatedContent.replace(
                 /background-color\s*:\s*[^;"]+/g,
                 `background-color: ${cssColor}`
             );
-
-            // Replace border color if present
             updatedContent = updatedContent.replace(
                 /border\s*:\s*([\d\w\s]+?)\s+(solid|dashed|dotted|double|groove|ridge|inset|outset)\s*[^;"]+/gi,
                 (match, width, style) => `border: ${width} ${style} ${cssColor}`
             );
-
-            // Replace text color if present
             updatedContent = updatedContent.replace(
                 /color\s*:\s*[^;"]+/g,
                 `color: ${cssColor}`
@@ -1360,11 +1368,13 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                 content: updatedContent,
                 shapeColor: cssColor
             };
-
+    
             setElements(prevElements =>
                 prevElements.map(el => el.id === selectedElement ? updatedElement : el)
             );
         } else {
+            // CHANGE 2: Pass applyNow through to handleColorStyleChange
+            // so the DOM mutation only happens on commit, not during drag.
             if (applyNow) {
                 handleColorStyleChange(cssColor);
             }
@@ -2800,9 +2810,9 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                     )}
                     <div className="modal-header-controls">
                         {isFullscreen ? (
-                            <img src="/expand.png" alt="ExpandPage" onClick={toggleFullscreen} style={{ cursor: 'pointer', height: '20px' }} />
+                            <img crossOrigin="anonymous" src="/expand.png" alt="ExpandPage" onClick={toggleFullscreen} style={{ cursor: 'pointer', height: '20px' }} />
                         ) : (
-                            <img src="/expand.png" alt="CollapsePage" onClick={toggleFullscreen} style={{ cursor: 'pointer', height: '20px' }} />
+                            <img crossOrigin="anonymous" src="/expand.png" alt="CollapsePage" onClick={toggleFullscreen} style={{ cursor: 'pointer', height: '20px' }} />
                         )}
                         <MdCancel size={24} style={{ cursor: 'pointer', marginRight: `${isFullscreen ? '20px' : "0px"}` }} onClick={closeEditor} />
                     </div>
@@ -2815,14 +2825,15 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                 <div className='Buttons-div'>
                                     {page !== 2 && (
                                         <img
-                                            src="/addpageicon.webp"
+                                        crossOrigin="anonymous"    
+                                        src="/addpageicon.webp"
                                             alt="Add Page"
                                             onClick={addPage}
                                             style={{ cursor: 'pointer', height: '30px' }}
                                         />
                                     )}
                                     {((page === 1 && pageDataArray.length > 1) || (currentPageIndex > 0)) && (
-                                        <img
+                                        <img crossOrigin="anonymous"
                                             src="/removepage.webp"
                                             alt="Remove Page"
                                             onClick={removeCurrentPage}
@@ -3035,18 +3046,19 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                             }}
                                         />
                                         {colorPickerVisible && (
-    <div 
-        style={{ position: 'absolute', zIndex: 31, marginTop: '10px' }}
-        onKeyDown={(e) => e.stopPropagation()}  // ← add this
-    >
-        <CustomColorPicker
-            color={textColor || '#000000'}
-            onChange={handleColorChange}
-            onApply={() => setColorPickerVisible(false)}
-            width={200}
-        />
-    </div>
-)}
+                                            <div
+                                                style={{ position: 'absolute', zIndex: 31, marginTop: '10px' }}
+                                                onKeyDown={(e) => e.stopPropagation()}
+                                            >
+                                                <CustomColorPicker
+                                                    color={textColor || '#000000'}
+                                                    onChange={handleColorChange}
+                                                    onApply={() => setColorPickerVisible(false)}
+                                                    width={200}
+                                                    containerRef={containerRef}   // ← ADD THIS ONE LINE
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                     <div className='Line-spacing d-flex'>
                                         <ImTextHeight
@@ -3970,7 +3982,7 @@ const EnvelopeEditor = ({ onClose, title, groupID, isPreview, envelopeId, custom
                                                                             <CiImageOn />
                                                                         </div>
                                                                     )}
-                                                                    <img
+                                                                    <img crossOrigin="anonymous"
                                                                         src={el.content}
                                                                         alt="Element"
                                                                         style={{
